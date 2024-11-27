@@ -1,0 +1,41 @@
+﻿@inject NavigationManager navigationManager
+<header>
+    <div><nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Bucket Network</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+                <nav class="navbar bg-body-tertiary">
+                    <EditForm EditContext="editContext" OnSubmit="HandlerSubmit" autocomplete="off">
+                        <div class="input-group">
+                            <span class="input-group-text" id="username">@@</span>
+                            <InputText type="text" class="form-control" @bind-Value="@userModel.nickname" placeholder="Username" aria-label="Username" aria-describedby="username"></InputText>
+                        </div>
+                    </EditForm>
+                </nav>
+        </div>
+    </nav></div>
+</header>
+@code{
+    private EditContext editContext;
+    public UserName userModel;
+    public class UserName
+    {
+        public string nickname {get; set; }
+    }
+    protected override void OnInitialized()
+    {
+        userModel = new UserName();
+        editContext = new EditContext(userModel);
+    }
+    private string id;
+    private void HandlerSubmit(EditContext edit)
+    {
+        var user2Search = (UserName)edit.Model;
+        if(string.IsNullOrEmpty(user2Search.nickname))
+            return;
+
+        navigationManager.NavigateTo($"/search?username={user2Search.nickname}", true, true);
+    }
+}

@@ -1,0 +1,94 @@
+﻿@using System.ComponentModel.DataAnnotations
+@using AppWeb.Services
+@using global::Services
+@inject UserState userState
+@inject CookiesService cookieService
+@inject PostService postService
+
+@if (userState.CurrentUser != null)
+{
+    <div class="mt-5 row">
+        <img class="col-2 rounded-5" src="/Doctypes/Avatars/@userState.CurrentUser.Avatar" />
+        <EditForm EditContext="editContext" class="col-9" OnValidSubmit="HandlerSend">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="col-11 d-flex flex-column">
+                <h4>@userState.CurrentUser.Name</h4>
+                <div class="d-flex">
+                    <InputText @bind-Value="@commentModel.CommentText" class="col-md-12"></InputText>
+                    <button type="submit" class="btn btn-outline-success col-2">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}
+else
+{
+    <p>Please log in to upload file</p>
+}
+
+@code {
+    [Parameter]
+    public DbContext.Models.Post post { get; set; }
+    [Parameter]
+    public EventCallback OnCommentAdded { get; set; }
+
+    public EditContext editContext { get; set; }
+    private CommentModel commentModel;
+    private bool _isInitialized = false;
+
+    protected override void OnInitialized()
+    {
+        commentModel = new CommentModel();
+        editContext = new EditContext(commentModel);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            try
+            {
+                _isInitialized = true;
+                userState.CurrentUser = await cookieService.RetrievedUser();
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+    }
+
+    private async Task HandlerSend(EditContext editContext)
+    {
+        var model = (CommentModel)editContext.Model;
+        try
+        {
+            Comments comment = new Comments()
+                {
+                    CommentText = model.CommentText,
+                    PostId = post.PostId,
+                    UserId = userState.CurrentUser.UserId
+                };
+            await postService.SetCommentToPost(comment);
+            await OnCommentAdded.InvokeAsync(null); 
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    public class CommentModel
+    {
+        [Required]
+        [MinLength(1)]
+        [MaxLength(500)]
+        public string CommentText { get; set; }
+    }
+}

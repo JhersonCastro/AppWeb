@@ -1,0 +1,36 @@
+﻿@using global::Services
+@using Services
+@inject UserState userState
+@inject CookiesService cookieService
+@inject PostService postService
+
+<div class="row g-3 justify-content-center">
+    @if (post != null && post.Comments != null)
+    {
+        @foreach (var comment in post.Comments)
+        {
+            <div class="row align-items-start">
+                <div class="col-1">
+                    <img src="/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid">
+                </div>
+                <div class="col-10 d-flex flex-column">
+                    <a href="/user?id=@comment.User.UserId"><h3>@comment.User.Name</h3></a>
+                    <h4 class="">@comment.CommentText</h4>
+                </div>
+            </div> 
+        }
+    }
+    <UserComment post="post" OnCommentAdded="RefreshComments"></UserComment>
+</div>
+
+@code {
+    [Parameter]
+    public DbContext.Models.Post post { get; set; }
+
+    private async Task RefreshComments()
+    {
+        var refreshedPost = await postService.GetPostByIdAsync(post.PostId);
+        post.Comments = refreshedPost?.Comments;
+        StateHasChanged();
+    }
+}

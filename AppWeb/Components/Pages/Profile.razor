@@ -1,0 +1,260 @@
+﻿@page "/Profile"
+@using System.ComponentModel.DataAnnotations
+@using global::Services
+@using Services
+@inject UserState userState
+@inject PostService postService
+@inject NavigationManager navigationManager
+@inject IWebHostEnvironment WebHotEnv
+@inject UserService userService
+@inject LocalStorageService localStorageService
+@inject CookiesService cookiesService
+
+<div>
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="text-danger">Error: @_error</p>
+    }
+</div>
+
+@if (userState.CurrentUser==null)
+{
+    <div>
+        Wait, retrieving the profile if exists...
+    </div>
+}else
+{
+    <PageTitle>@userState.CurrentUser.Name</PageTitle>
+
+    <div class="justify-content-center row" style="margin-top:2.5%">
+    <div class="col-2 justify-content-center ">
+        <div> 
+            <label for="fileInput" class="btn btn-primary position-absolute">
+                    <i class="bi bi-upload"></i>
+            </label> 
+            <InputFile id="fileInput" OnChange="BtnAvatarHandlerAsync" accept=".png,.jpg,.jpeg" class="inputfile" style="display:none"/> 
+            </div>
+        <img src="/Doctypes/Avatars/@userState.CurrentUser.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
+
+    </div>
+    </div>
+    <br />
+    <div class="justify-content-center row g-4">
+        <h1 class="col-auto">@userState.CurrentUser.Name</h1>
+        <h1 class="col-auto" style="color:deepskyblue" >@@@userState.CurrentUser.NickName</h1>
+    </div>
+    <br />
+
+    <div class="d-flex justify-content-center my-5">
+        <div class="col-12 col-md-10 col-lg-8 p-4 border rounded bg-light">
+            <EditForm EditContext="_editPostContext" FormName="PostContent" OnValidSubmit="HandlerPost">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="input-group mb-4">
+                    <label class="input-group-text" for="groupPrivacity">Privacidad</label>
+                    <InputSelect id="groupPrivacity" class="form-control" @bind-Value="@_postModel.Privacity">
+                        @foreach (var value in Enum.GetValues<PostPrivacity>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+            
+                <div class="form-floating mb-4">
+                    <InputTextArea id="txtBody" class="form-control" style="height: 100px;" @bind-Value="@_postModel.Body" />
+                    <label for="txtBody">Contenido del post</label>
+                </div>
+                <div class="row justify-content-end">
+                    <label for="inputPostFile" class="btn btn-secondary col-md-auto same-sizebtn me-2" >Subir Archivo</label>
+                    <InputFile OnChange="BtnUploadPostFiles" multiple accept=".png,.jpg,.jpeg,.mp4" id="inputPostFile" style="display:none" />
+
+                    <button type="submit" class="btn btn-primary col-md-auto same-sizebtn" >Publicar</button>
+                </div>
+            </EditForm>
+            <section class='row g-3 p-3 justify-content-center'>
+                @if (_currentUploadFiles > 0)
+                {
+                    <p>Please don't close this page, Uploading @_currentUploadFiles files</p>
+                }
+                @foreach (var file in fileProgresses.Keys)
+                {
+                    <div class="progress mt-2"> 
+                        <div class="progress-bar" role="progressbar" style="width: @(fileProgresses[file])%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            @($"{fileProgresses[file]:0.00}%")
+                        </div> 
+                    </div>
+                }
+            </section>
+        </div>
+    </div>
+    <div>
+        <div class="row justify-content-center" style="margin-right:0px;">
+            @foreach (var post in userState.CurrentUser.Posts.OrderByDescending(p=> p.CreatedDate))
+            {
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end p-3">
+                    <button class="btn btn-danger" type="submit" @onclick="(args) => DeleteId(args, post)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                        </svg>
+                    </button>
+                </div>
+                <AppWeb.Components.Pages.TagPost.Post post="@post" ></AppWeb.Components.Pages.TagPost.Post>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    const int MaxFileSize = 5242880;
+    const long MaxFileSizePost = 268435456;
+    private EditContext _editPostContext;
+    private PostModel _postModel;
+    private string _error;
+    private int _currentUploadFiles;
+
+    public class PostModel
+    {
+        [Required]
+        [MinLength(1,ErrorMessage = "The body must have at least 1 character")]
+        public string Body { get; set; }
+        [Required]
+        public PostPrivacity Privacity { get; set; }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        _postModel = new PostModel();
+        _editPostContext = new EditContext(_postModel);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                if (userState.CurrentUser != null)
+                    return;
+                userState.CurrentUser = await cookiesService.RetrievedUser();
+                if(userState.CurrentUser == null)
+                    throw new Exception("User not found");
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving session: {ex.Message}");
+                navigationManager.NavigateTo("/");
+            }
+        }
+    }
+
+    private async Task DeleteId(MouseEventArgs e, Post post)
+    {
+        await postService.DeletePostAsync(post.PostId);
+        navigationManager.Refresh(true);
+    }
+
+
+    private async Task BtnAvatarHandlerAsync(InputFileChangeEventArgs e)
+    {
+        var browserFile = e.File;
+        if (browserFile != null)
+        {
+            try
+            {
+                var fileStream = browserFile.OpenReadStream(MaxFileSize);
+
+                var uniqueFileName = Guid.NewGuid().ToString()+"." + browserFile.Name.Split('.').Last();
+                var path = Path.Combine(WebHotEnv.WebRootPath, "Doctypes/Avatars", uniqueFileName);
+                var file = new FileStream(path, FileMode.Create, FileAccess.Write);
+                await fileStream.CopyToAsync(file);
+                file.Close();
+                fileStream.Close();
+                userState.CurrentUser.Avatar = uniqueFileName;
+                await userService.UpdateUserAsync(userState.CurrentUser);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+    }
+    string[] AllowedExtensions = new string[] { "jpg", "mp4", "png" } ;
+
+    private Dictionary<Files, double> fileProgresses = new Dictionary<Files, double>();
+    private async Task BtnUploadPostFiles(InputFileChangeEventArgs e)
+    {
+        var browserFiles = e.GetMultipleFiles();
+        _currentUploadFiles += browserFiles.Count();
+        foreach (var file in browserFiles)
+        {
+            try
+            {
+                var extension = file.Name.Split('.').Last();
+                if (!AllowedExtensions.Contains(extension))
+                {
+                    throw new Exception("Invalid file type");
+                }
+
+                var fileName = Path.GetFileName(file.Name);
+                var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
+                var path = Path.Combine(WebHotEnv.WebRootPath, "Doctypes", uniqueFileName);
+
+
+                await using var fileStream = new FileStream(path, FileMode.Create);
+                var buffer = new byte[81920];
+                var readBytes = 0;
+                var readStream = file.OpenReadStream(MaxFileSizePost);
+
+                long totalBytes = file.Size;
+                long uploadedBytes = 0;
+                var tempFile = new Files { uri = uniqueFileName, fileType = file.ContentType };
+
+                while ((readBytes = await readStream.ReadAsync(buffer)) != 0)
+                {
+                    await fileStream.WriteAsync(buffer, 0, readBytes);
+                    uploadedBytes += readBytes;
+                    var progress = (uploadedBytes / (double)totalBytes) * 100;
+                    fileProgresses[tempFile] = progress;
+                    StateHasChanged();
+                }
+                _currentUploadFiles--;
+            }
+            catch (Exception ex)
+            {
+                _error = ex.Message;
+            }
+        }
+
+    }
+    private async Task HandlerPost(EditContext editContext)
+    {
+        if (_currentUploadFiles > 0)
+            _error = "Still uploading files, please wait";
+        List<Files> files = new List<Files>();
+        foreach (var file in fileProgresses.Keys)
+        {
+            files.Add(new Files()
+                {
+                    uri = file.uri,
+                    fileType = file.fileType
+                });
+        }
+        var post = new DbContext.Models.Post
+        {
+            UserId = userState.CurrentUser.UserId,
+            Body = _postModel.Body,
+            Privacity = _postModel.Privacity,
+            CreatedDate = DateTime.UtcNow,
+            files = files,
+            Comments = new List<Comments>()
+        };
+        await postService.CreatePostAsync(post);
+
+        _postModel.Body = "";
+        _postModel.Privacity = PostPrivacity.p_public;
+        fileProgresses.Clear();
+
+        userState.CurrentUser.Posts.Add(post);
+        StateHasChanged();
+    }
+}

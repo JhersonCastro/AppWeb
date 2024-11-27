@@ -1,0 +1,63 @@
+﻿@if(post != null)
+{
+
+    <div class="col-auto col-md-10 mb-5">
+        <article class="card text-white bg-dark rounded-5" s>
+            <header class="card-header row">
+                <p class='col-10 text-left'>@post.Body</p>
+                <div class='col-auto p-3 text-center'>
+                    <time datetime='@post.CreatedDate' data-toggle='tooltip' title='@post.CreatedDate'>
+                        @post.CreatedDate.ToShortDateString()
+                    </time>
+                    <br>
+                    @{
+                        string pri = "";
+                        switch (post.Privacity)
+                        {
+                            case PostPrivacity.p_public:
+                                pri = "bi bi-globe";
+                                break;
+                            case PostPrivacity.p_private:
+                                pri = "bi bi-lock-fill";
+                                break;
+                            case PostPrivacity.p_only_friends:
+                                pri = "bi bi-people";
+                                break;
+                        }
+                    }
+                    <i class='pri'></i>
+                </div>
+            </header>
+            @if (post.files != null)
+            {
+
+
+                <section class='row g-3 p-3 justify-content-center'>
+                    @foreach (var media in post.files)
+                    {
+                        <div class="col-6 mb-2">
+                            @if (media.fileType.Split('/')[0] == "video")
+                            {
+                                <video class='same-size rounded-5' controls>
+                                    <source src='Doctypes/@media.uri' type="@media.fileType">
+                                </video>
+                            }
+                            else
+                            {
+                                <img loading='lazy' class='same-size rounded-5' src='Doctypes/@media.uri' alt='Image' />
+                            }
+                        </div>
+                    }
+                </section>
+            }
+        </article>
+        <div class="p-3 mt-3">
+            <Comment post="post" />
+        </div>
+    </div>
+}
+@code {
+    [Parameter]
+    public DbContext.Models.Post post { get; set; }
+
+}

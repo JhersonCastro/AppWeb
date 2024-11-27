@@ -1,0 +1,43 @@
+﻿@page "/Search"
+@using Services
+@inject UserService userServices
+<div>
+    @if (!string.IsNullOrEmpty(ERRORMESSAGE))
+    {
+        <p class="text-danger">@ERRORMESSAGE</p>
+        <a href="/">Go to home</a>
+    }
+</div>
+<div>
+    @foreach (var user in users)
+    {
+        <a href="/user?id=@user.UserId" class="user-profile p-3">
+            <div class="container card">
+                <section class="card-body row">
+                    <img class="rounded-5 col-2" style="aspect-ratio:1/1; object-fit:cover" src="/Doctypes/Avatars/@user.Avatar" alt="Avatar"/>
+                    <h1 class="col">@user.Name</h1>
+                    <h2 class="col">@user.NickName</h2>
+                </section>
+            </div>
+        </a>
+    }
+</div>
+<style>
+    .user-profile{
+        color:black;
+    }
+</style>
+@code {
+    [SupplyParameterFromQuery]
+    public string? username { get; set; }
+    private List<DbContext.Models.User> users = new();
+    private string? ERRORMESSAGE;
+    protected override async Task OnInitializedAsync()
+    {
+        users = await userServices.PredictUserAsync(username);
+        if (users.Count == 0)
+            ERRORMESSAGE = "No users found";
+
+    }
+
+}
