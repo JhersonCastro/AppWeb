@@ -3,39 +3,40 @@
     <div><nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">Bucket Network</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            
+            @if (_userModel != null)
+            {
                 <nav class="navbar bg-body-tertiary">
-                    <EditForm EditContext="editContext" OnSubmit="HandlerSubmit" autocomplete="off">
+                    <EditForm EditContext="_editContext" OnSubmit="HandlerSubmit" autocomplete="off">
                         <div class="input-group">
                             <span class="input-group-text" id="username">@@</span>
-                            <InputText type="text" class="form-control" @bind-Value="@userModel.nickname" placeholder="Username" aria-label="Username" aria-describedby="username"></InputText>
+                            <InputText type="text" class="form-control" @bind-Value="@_userModel.Nickname" placeholder="Username" aria-label="Username" aria-describedby="username"></InputText>
+                            
                         </div>
                     </EditForm>
                 </nav>
+            }
         </div>
     </nav></div>
 </header>
 @code{
-    private EditContext editContext;
-    public UserName userModel;
+    private EditContext? _editContext;
+    private UserName? _userModel;
     public class UserName
     {
-        public string nickname {get; set; }
+        public string? Nickname {get; set; }
     }
     protected override void OnInitialized()
     {
-        userModel = new UserName();
-        editContext = new EditContext(userModel);
+        _userModel = new UserName();
+        _editContext = new EditContext(_userModel);
     }
-    private string id;
     private void HandlerSubmit(EditContext edit)
     {
         var user2Search = (UserName)edit.Model;
-        if(string.IsNullOrEmpty(user2Search.nickname))
+        if(string.IsNullOrEmpty(user2Search.Nickname))
             return;
 
-        navigationManager.NavigateTo($"/search?username={user2Search.nickname}", true, true);
+        navigationManager.NavigateTo($"/search?username={user2Search.Nickname}", true, true);
     }
 }

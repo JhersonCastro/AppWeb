@@ -1,31 +1,21 @@
-﻿using AppWeb.Services;
-using DbContext;
+﻿using DbContext;
 using DbContext.Models;
-using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 
-namespace Services
+namespace AppWeb.Services
 {
-    public class CookiesService
+    public class CookiesService(
+        IDbContextFactory<DatabaseContext> contextFactory,
+        LocalStorageService localStorageService)
     {
-        private readonly IDbContextFactory<DatabaseContext> _contextFactory;
-        private readonly LocalStorageService _localStorageService;
-
-        public CookiesService(IDbContextFactory<DatabaseContext> contextFactory, LocalStorageService localStorageService)
+        public async Task<User?> RetrievedUser(User? user)
         {
-            _contextFactory = contextFactory;
-            _localStorageService = localStorageService;
-        }
+            if (user != null)
+                return user;
 
-        public async Task<User?> RetrievedUser()
-        {
-            var t = await _localStorageService.GetItemAsync("CurrentSession");
-            if (t == null)
-            {
-                return null;
-            }
+            string t = await localStorageService.GetItemAsync("CurrentSession");
 
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
             var tempUser = await GetUserByCookie(t, context);
             return tempUser;
         }
@@ -33,7 +23,7 @@ namespace Services
         public async Task<string> AddCookieCurrentSession(User user)
         {
             Guid guid = Guid.NewGuid();
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
             var cookie = new CookiesResearch()
             {
                 CookieCurrentSession = guid.ToString(),
@@ -46,12 +36,12 @@ namespace Services
 
         public async Task RemoveCookieCurrentSessions(string cookie)
         {
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
             context.Cookies.RemoveRange(context.Cookies.Where(p => p.CookieCurrentSession == cookie));
             await context.SaveChangesAsync();
         }
 
-        private async Task<User?> GetUserByCookie(string cookie, DatabaseContext context)
+        private static async Task<User?> GetUserByCookie(string cookie, DatabaseContext context)
         {
             var user = await context.Cookies.FirstOrDefaultAsync(p => p.CookieCurrentSession == cookie);
             if (user != null)

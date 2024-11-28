@@ -2,16 +2,20 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
+
 <div class="container d-flex justify-content-center">
     <div>
-        @foreach (var message in messages)
+        @foreach (var message in Messages)
         {
             <p>@message</p>
         }
 
-        <EditForm EditContext="editContext" OnValidSubmit="SendMessage">
+        <EditForm EditContext="_editContext" OnValidSubmit="SendMessage">
             <div class="form-group">
-                <InputText @bind-Value="msgModel.msg" class="form-control" />
+                @if (_msgModel != null)
+                {
+                    <InputText @bind-Value="_msgModel.Msg" class="form-control" />
+                }
             </div>
             <button type="submit" class="btn btn-primary mt-2">Send</button>
         </EditForm>
@@ -20,54 +24,59 @@
 
 @code {
     private static int i = 0;
-    private string newGuest = "";
+    private string _newGuest = "";
 
-    public List<string> messages = new List<string>();
-    EditContext editContext;
-    Msg msgModel;
-    private HubConnection hubConnection;
+    public List<string> Messages = [];
+    EditContext? _editContext;
+    MsgModel? _msgModel;
+    private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
-        msgModel = new();
-        editContext = new EditContext(msgModel);
-        hubConnection = new HubConnectionBuilder()
+        _msgModel = new MsgModel();  // Asegurarse de que _msgModel esté inicializado
+        _editContext = new EditContext(_msgModel);  // Asegurarse de que _editContext esté inicializado
+        _hubConnection = new HubConnectionBuilder()
                         .WithUrl(NavigationManager.ToAbsoluteUri("/ChatHub"))
                         .Build();
-        hubConnection.On<string>("RecieveCommunityChat", async (message) =>
+        _hubConnection.On<string>("ReceiveCommunityChat", (message) =>
         {
-            messages.Add(message);
-            await InvokeAsync(StateHasChanged);
+            Messages.Add(message);
+            InvokeAsync(StateHasChanged); 
         });
-        newGuest = "guest " + i;
+        _newGuest = "guest " + i;
         i++;
-        await hubConnection.StartAsync();
+        await _hubConnection.StartAsync();
     }
 
     public async Task SendMessage()
     {
         try
         {
-            await hubConnection.InvokeAsync("SendMenssageToCommunity", newGuest+ " says: "+ msgModel.msg);
-            msgModel.msg = string.Empty;
-            if (messages.Count > 100)
-                messages.RemoveRange(0, 50);
-        }catch(Exception ex)
+            if (_msgModel == null || _hubConnection == null)
+                return;
+            await _hubConnection.InvokeAsync("SendMessageToCommunity", _newGuest + " says: " + _msgModel.Msg);
+            _msgModel.Msg = string.Empty;
+            if (Messages.Count > 100)
+                Messages.RemoveRange(0, 50);
+        }
+        catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
     }
+
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection != null)
+        if (_hubConnection != null)
         {
-            await hubConnection.DisposeAsync();
+            await _hubConnection.DisposeAsync();
         }
     }
-    public class Msg
+
+    public class MsgModel
     {
         [Required]
         [MinLength(1)]
-        public string msg;
+        public string? Msg { get; set; }  
     }
 }

@@ -1,20 +1,17 @@
 ﻿@using System.Text.Json
 @using System.Text.Json.Serialization
-@using global::Services
-@using Services
+@using AppWeb.Services
 @using Microsoft.AspNetCore.SignalR.Client
-@inject UserState userState
-@inject CookiesService cookieService
-@inject PostService postService
+@inject UserState UserState
+@inject CookiesService CookieService
+@inject PostService PostService
 @inject NavigationManager NavigationManager
 
 <div class="row g-3 justify-content-center">
-    @if (post != null && post.Comments != null)
-    {
         @foreach (var comment in post.Comments.OrderBy(c=>c.CommentId))
         {
             
-            @if (comment.UserId == userState.CurrentUser?.UserId)
+            @if (comment.UserId == UserState.CurrentUser?.UserId)
             {
                 <div class="row justify-content-end">
 
@@ -28,7 +25,7 @@
             }
                     <div class="row align-items-start">
                         <div class="col-1">
-                            <img src="/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid">
+                            <img src="/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid" alt="Image">
                         </div>
                         <div class="col-10 d-flex flex-column">
                             <a href="/user?id=@comment.User.UserId"><h3>@comment.User.Name</h3></a>
@@ -36,27 +33,25 @@
                         </div>
                     </div> 
         }
-    }
-    <UserComment post="post" CurrentUser="userState.CurrentUser"></UserComment>
+    <UserComment Post="post" CurrentUser="UserState.CurrentUser"></UserComment>
 </div>
 
 @code {
     [Parameter]
-    public DbContext.Models.Post post { get; set; }
+    public required DbContext.Models.Post post { get; set; }
 
-    private HubConnection hubConnection;
-    private bool disposed = false;
+    private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            hubConnection = new HubConnectionBuilder()
+            _hubConnection = new HubConnectionBuilder()
                 .WithUrl(NavigationManager.ToAbsoluteUri("/CommentHub"))
                 .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
                 .Build();
 
-            hubConnection.On<string, string>("ReceiveComment", async (postId, json) =>
+            _hubConnection.On<string, string>("ReceiveComment", async (postId, json) =>
             {
                 if (postId == post.PostId.ToString())
                 {
@@ -65,7 +60,7 @@
                     await AddComment(comment);
                 }
             });
-            hubConnection.On<string, string>("RecDelComment", async (postId, commentId) =>
+            _hubConnection.On<string, string>("RecDelComment", async (postId, commentId) =>
             {
                 if (postId == post.PostId.ToString())
                 {
@@ -73,7 +68,7 @@
                     await RemoveComment(comment);
                 }
             });
-            await hubConnection.StartAsync();
+            await _hubConnection.StartAsync();
         }
         catch (Exception ex)
         {
@@ -83,30 +78,30 @@
 
     public async Task DeleteId(MouseEventArgs args, int commentId)
     {
-        await hubConnection.SendAsync("DeleteComment", post.PostId.ToString(), commentId.ToString());
+        if (_hubConnection != null) await _hubConnection.SendAsync("DeleteComment", post.PostId.ToString(), commentId.ToString());
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            userState.CurrentUser = await cookieService.RetrievedUser();
+            UserState.CurrentUser = await CookieService.RetrievedUser(UserState.CurrentUser);
             StateHasChanged();
         }
     }
-    private async Task AddComment(Comments comment)
+    private async Task AddComment(Comments? comment)
     {
-        if (!disposed)
+        if (comment != null)
         {
             post.Comments.Add(comment);
             await InvokeAsync(StateHasChanged);
         }
     }
-    private async Task RemoveComment(Comments comment)
+    private async Task RemoveComment(Comments? comment)
     {
-        if (!disposed)
+        if (comment != null)
         {
             post.Comments.Remove(comment);
-            await postService.DeleteComment(comment);
+            await PostService.DeleteComment(comment);
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -114,10 +109,9 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection != null)
+        if (_hubConnection != null)
         {
-            await hubConnection.DisposeAsync();
+            await _hubConnection.DisposeAsync();
         }
-        disposed = true;
     }
 }

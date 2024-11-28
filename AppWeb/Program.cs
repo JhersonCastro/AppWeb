@@ -4,7 +4,6 @@ using AppWeb.SignalR;
 using DbContext;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
-using Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

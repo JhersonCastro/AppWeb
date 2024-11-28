@@ -1,62 +1,61 @@
-﻿@using global::Services
-@using Services
-@inject UserService userService
-@inject PostService postService
-@inject NavigationManager navigationManager
+﻿@page "/User"
+@using AppWeb.Services
+@inject UserService UserService
+@inject UserState UserState
+@inject PostService PostService
+@inject NavigationManager NavigationManager
 @inject CookiesService cookiesService
-@page "/User"
-@if (userContext != null)
+@if (_userContext != null)
 {
-    <PageTitle>@userContext.Name</PageTitle>
+    <PageTitle>@_userContext.Name</PageTitle>
 
     <div class="justify-content-center row" style="margin-top:2.5%">
         <div class="col-2 justify-content-center ">
-            <img src="/Doctypes/Avatars/@userContext.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
+            <img src="/Doctypes/Avatars/@_userContext.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
         </div>
     </div>
-    <br />
+
     <div class="justify-content-center row g-4">
-        <h1 class="col-auto">@userContext.Name</h1>
-        <h1 class="col-auto" style="color:deepskyblue">@@@userContext.NickName</h1>
+        <h1 class="col-auto">@_userContext.Name</h1>
+        <h1 class="col-auto" style="color:deepskyblue">@@@_userContext.NickName</h1>
     </div>
-    <br />
 
 
     <div class="row justify-content-center" style="margin-right:0px;">
-        @foreach (var post in userContext.Posts.OrderByDescending(p => p.CreatedDate))
+        @foreach (var post in _userContext.Posts.OrderByDescending(p => p.CreatedDate))
         {
-            <AppWeb.Components.Pages.TagPost.Post post="@post"></AppWeb.Components.Pages.TagPost.Post>
+            <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post"></AppWeb.Components.Pages.TagPost.Post>
         }
     </div>
 }
 @code {
     [SupplyParameterFromQuery]
-    public string id { get; set; }
-    private DbContext.Models.User userContext;
-    private DbContext.Models.User userProfile;
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            var user = await userService.getUserById(int.Parse(id));
-            userProfile = await cookiesService.RetrievedUser();
-            if(user==null)
-                throw new Exception("User doesn't found");
-            userContext = new DbContext.Models.User
-            {
-                UserId = user.UserId,
-                Name = user.Name,
-                NickName = user.NickName,
-                Avatar = user.Avatar,
-                Posts = await postService.GetPostsAsync(user, userProfile)
-            };
-        }
-        catch (Exception e)
-        {
-            navigationManager.NavigateTo("/");
-        }
-    }
+    public string Id { get; set; } = string.Empty;
+    private User? _userContext;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            try
+            {
+                var user = await UserService.getUserById(int.Parse(Id));
+                UserState.CurrentUser = await cookiesService.RetrievedUser(UserState.CurrentUser);
+                if (user == null)
+                    throw new Exception("User doesn't found");
+                _userContext = new User
+                    {
+                        UserId = user.UserId,
+                        Name = user.Name,
+                        NickName = user.NickName,
+                        Avatar = user.Avatar,
+                        Posts = await PostService.GetPostsAsync(user, UserState.CurrentUser)
+                    };
+                await InvokeAsync(StateHasChanged);
+            }
+            catch
+            {
+                NavigationManager.NavigateTo("/");
+            }
+        }
     }
 }

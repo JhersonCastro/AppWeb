@@ -1,14 +1,13 @@
 ﻿@page "/Profile"
 @using System.ComponentModel.DataAnnotations
-@using global::Services
-@using Services
-@inject UserState userState
-@inject PostService postService
-@inject NavigationManager navigationManager
+@using AppWeb.Services
+
+@inject UserState UserState
+@inject PostService PostService
+@inject NavigationManager NavigationManager
 @inject IWebHostEnvironment WebHotEnv
-@inject UserService userService
-@inject LocalStorageService localStorageService
-@inject CookiesService cookiesService
+@inject UserService UserService
+@inject CookiesService CookiesService
 
 <div>
     @if (!string.IsNullOrEmpty(_error))
@@ -17,14 +16,14 @@
     }
 </div>
 
-@if (userState.CurrentUser==null)
+@if (UserState.CurrentUser==null)
 {
     <div>
         Wait, retrieving the profile if exists...
     </div>
 }else
 {
-    <PageTitle>@userState.CurrentUser.Name</PageTitle>
+    <PageTitle>@UserState.CurrentUser.Name</PageTitle>
 
     <div class="justify-content-center row" style="margin-top:2.5%">
     <div class="col-2 justify-content-center ">
@@ -34,26 +33,25 @@
             </label> 
             <InputFile id="fileInput" OnChange="BtnAvatarHandlerAsync" accept=".png,.jpg,.jpeg" class="inputfile" style="display:none"/> 
             </div>
-        <img src="/Doctypes/Avatars/@userState.CurrentUser.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
+        <img src="/Doctypes/Avatars/@UserState.CurrentUser.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
 
     </div>
     </div>
-    <br />
+
     <div class="justify-content-center row g-4">
-        <h1 class="col-auto">@userState.CurrentUser.Name</h1>
-        <h1 class="col-auto" style="color:deepskyblue" >@@@userState.CurrentUser.NickName</h1>
+        <h1 class="col-auto">@UserState.CurrentUser.Name</h1>
+        <h1 class="col-auto" style="color:deepskyblue" >@@@UserState.CurrentUser.NickName</h1>
     </div>
-    <br />
 
     <div class="d-flex justify-content-center my-5">
         <div class="col-12 col-md-10 col-lg-8 p-4 border rounded bg-light">
-            <EditForm EditContext="_editPostContext" FormName="PostContent" OnValidSubmit="HandlerPost">
+            <EditForm EditContext="_editPostContext" FormName="CurrentPostContent" OnValidSubmit="HandlerPost">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
                 <div class="input-group mb-4">
-                    <label class="input-group-text" for="groupPrivacity">Privacidad</label>
-                    <InputSelect id="groupPrivacity" class="form-control" @bind-Value="@_postModel.Privacity">
-                        @foreach (var value in Enum.GetValues<PostPrivacity>())
+                    <label class="input-group-text" for="groupPrivacity">Post privacy</label>
+                    <InputSelect id="groupPrivacity" class="form-control" @bind-Value="@_postModel!.Privacy">
+                        @foreach (var value in Enum.GetValues<PostPrivacy>())
                         {
                             <option value="@value">@value</option>
                         }
@@ -62,13 +60,13 @@
             
                 <div class="form-floating mb-4">
                     <InputTextArea id="txtBody" class="form-control" style="height: 100px;" @bind-Value="@_postModel.Body" />
-                    <label for="txtBody">Contenido del CurrentPost</label>
+                    <label for="txtBody">Body</label>
                 </div>
                 <div class="row justify-content-end">
-                    <label for="inputPostFile" class="btn btn-secondary col-md-auto same-sizebtn me-2" >Subir Archivo</label>
+                    <label for="inputPostFile" class="btn btn-secondary col-md-auto same-sizebtn me-2" >Upload Files</label>
                     <InputFile OnChange="BtnUploadPostFiles" multiple accept=".png,.jpg,.jpeg,.mp4" id="inputPostFile" style="display:none" />
 
-                    <button type="submit" class="btn btn-primary col-md-auto same-sizebtn" >Publicar</button>
+                    <button type="submit" class="btn btn-primary col-md-auto same-sizebtn" >Post!</button>
                 </div>
             </EditForm>
             <section class='row g-3 p-3 justify-content-center'>
@@ -89,7 +87,7 @@
     </div>
     <div>
         <div class="row justify-content-center" style="margin-right:0px;">
-            @foreach (var post in userState.CurrentUser.Posts.OrderByDescending(p=> p.CreatedDate))
+            @foreach (var post in UserState.CurrentUser.Posts.OrderByDescending(p=> p.CreatedDate))
             {
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end p-3">
                     <button class="btn btn-danger" type="submit" @onclick="(args) => DeleteId(args, post)">
@@ -99,7 +97,7 @@
                         </svg>
                     </button>
                 </div>
-                <AppWeb.Components.Pages.TagPost.Post post="@post" ></AppWeb.Components.Pages.TagPost.Post>
+                <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post" ></AppWeb.Components.Pages.TagPost.Post>
             }
         </div>
     </div>
@@ -108,23 +106,24 @@
 @code {
     const int MaxFileSize = 5242880;
     const long MaxFileSizePost = 268435456;
-    private EditContext _editPostContext;
-    private PostModel _postModel;
-    private string _error;
+    private EditContext? _editPostContext;
+    private PostModel? _postModel;
+    private string? _error;
     private int _currentUploadFiles;
 
     public class PostModel
     {
         [Required]
         [MinLength(1,ErrorMessage = "The body must have at least 1 character")]
-        public string Body { get; set; }
+        public string? Body { get; set; }
         [Required]
-        public PostPrivacity Privacity { get; set; }
+        public PostPrivacy Privacy { get; set; }
     }
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         _postModel = new PostModel();
         _editPostContext = new EditContext(_postModel);
+        return base.OnInitializedAsync();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -132,50 +131,51 @@
         {
             try
             {
-                if (userState.CurrentUser != null)
+                if (UserState.CurrentUser != null)
                     return;
-                userState.CurrentUser = await cookiesService.RetrievedUser();
-                if(userState.CurrentUser == null)
+                
+                UserState.CurrentUser = await CookiesService.RetrievedUser(UserState.CurrentUser);
+                if(UserState.CurrentUser == null)
                     throw new Exception("User not found");
                 StateHasChanged();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error retrieving session: {ex.Message}");
-                navigationManager.NavigateTo("/");
+                NavigationManager.NavigateTo("/");
             }
         }
     }
 
     private async Task DeleteId(MouseEventArgs e, Post post)
     {
-        await postService.DeletePostAsync(post.PostId);
-        navigationManager.Refresh(true);
+        await PostService.DeletePostAsync(post.PostId);
+        NavigationManager.Refresh(true);
     }
 
 
     private async Task BtnAvatarHandlerAsync(InputFileChangeEventArgs e)
     {
         var browserFile = e.File;
-        if (browserFile != null)
+        try
         {
-            try
-            {
-                var fileStream = browserFile.OpenReadStream(MaxFileSize);
+            var fileStream = browserFile.OpenReadStream(MaxFileSize);
 
-                var uniqueFileName = Guid.NewGuid().ToString()+"." + browserFile.Name.Split('.').Last();
-                var path = Path.Combine(WebHotEnv.WebRootPath, "Doctypes/Avatars", uniqueFileName);
-                var file = new FileStream(path, FileMode.Create, FileAccess.Write);
-                await fileStream.CopyToAsync(file);
-                file.Close();
-                fileStream.Close();
-                userState.CurrentUser.Avatar = uniqueFileName;
-                await userService.UpdateUserAsync(userState.CurrentUser);
-            }
-            catch (Exception ex)
+            var uniqueFileName = Guid.NewGuid().ToString()+"." + browserFile.Name.Split('.').Last();
+            var path = Path.Combine(WebHotEnv.WebRootPath, "Doctypes/Avatars", uniqueFileName);
+            var file = new FileStream(path, FileMode.Create, FileAccess.Write);
+            await fileStream.CopyToAsync(file);
+            file.Close();
+            fileStream.Close();
+            if (UserState.CurrentUser != null)
             {
-                Console.WriteLine(ex);
+                UserState.CurrentUser.Avatar = uniqueFileName;
+                await UserService.UpdateUserAsync(UserState.CurrentUser);
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
         }
     }
     string[] AllowedExtensions = new string[] { "jpg", "mp4", "png" } ;
@@ -239,22 +239,30 @@
                     fileType = file.fileType
                 });
         }
-        var post = new DbContext.Models.Post
+
+        if (UserState.CurrentUser != null)
         {
-            UserId = userState.CurrentUser.UserId,
-            Body = _postModel.Body,
-            Privacity = _postModel.Privacity,
-            CreatedDate = DateTime.UtcNow,
-            files = files,
-            Comments = new List<Comments>()
-        };
-        await postService.CreatePostAsync(post);
+            if (_postModel != null)
+            {
+                var post = new DbContext.Models.Post
+                {
+                    UserId = UserState.CurrentUser.UserId,
+                    Body = _postModel.Body,
+                    Privacy = _postModel.Privacy,
+                    CreatedDate = DateTime.UtcNow,
+                    files = files,
+                    Comments = new List<Comments>()
+                };
+                await PostService.CreatePostAsync(post);
 
-        _postModel.Body = "";
-        _postModel.Privacity = PostPrivacity.p_public;
-        fileProgresses.Clear();
+                _postModel.Body = "";
+                _postModel.Privacy = PostPrivacy.p_public;
+                fileProgresses.Clear();
 
-        userState.CurrentUser.Posts.Add(post);
+                UserState.CurrentUser.Posts.Add(post);
+            }
+        }
+
         StateHasChanged();
     }
 }

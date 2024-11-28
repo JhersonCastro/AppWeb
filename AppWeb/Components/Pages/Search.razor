@@ -1,15 +1,15 @@
 ﻿@page "/Search"
 @using Services
-@inject UserService userServices
+@inject UserService UserServices
 <div>
-    @if (!string.IsNullOrEmpty(ERRORMESSAGE))
+    @if (!string.IsNullOrEmpty(_errorMessage))
     {
-        <p class="text-danger">@ERRORMESSAGE</p>
-        <a href="/">Go to home</a>
+        <p class="text-danger">@_errorMessage</p>
+        <a href="/">Go home</a>
     }
 </div>
 <div>
-    @foreach (var user in users)
+    @foreach (var user in _users)
     {
         <a href="/user?id=@user.UserId" class="user-profile p-3">
             <div class="container card">
@@ -29,14 +29,14 @@
 </style>
 @code {
     [SupplyParameterFromQuery]
-    public string? username { get; set; }
-    private List<DbContext.Models.User> users = new();
-    private string? ERRORMESSAGE;
+    public string? Username { get; set; }
+    private List<User> _users = [];
+    private string? _errorMessage;
     protected override async Task OnInitializedAsync()
     {
-        users = await userServices.PredictUserAsync(username);
-        if (users.Count == 0)
-            ERRORMESSAGE = "No users found";
+        _users = await UserServices.PredictUserAsync(Username);
+        if (_users.Count == 0)
+            _errorMessage = "No users found";
 
     }
 
