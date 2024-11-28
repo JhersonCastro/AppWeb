@@ -25,6 +25,13 @@
 {
     <PageTitle>@UserState.CurrentUser.Name</PageTitle>
 
+    <button id="ShowProfileModal" class="btn btn-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+            <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+            <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/>
+        </svg>
+        Show Settings
+    </button>
     <div class="justify-content-center row" style="margin-top:2.5%">
     <div class="col-2 justify-content-center ">
         <div> 
@@ -74,11 +81,11 @@
                 {
                     <p>Please don't close this page, Uploading @_currentUploadFiles files</p>
                 }
-                @foreach (var file in fileProgresses.Keys)
+                @foreach (var file in _fileProgresses.Keys)
                 {
                     <div class="progress mt-2"> 
-                        <div class="progress-bar" role="progressbar" style="width: @(fileProgresses[file])%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                            @($"{fileProgresses[file]:0.00}%")
+                        <div class="progress-bar" role="progressbar" style="width: @(_fileProgresses[file])%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            @($"{_fileProgresses[file]:0.00}%")
                         </div> 
                     </div>
                 }
@@ -101,16 +108,83 @@
             }
         </div>
     </div>
+    @*
+        TODO: Check the modal style;)
+    *@
+    <!--Region Modal-->
+    <dialog id="ModalProfileSetting">
+        <div class="modal-dialog-centered" role="document">
+            <div class="modal-content ">
+                <div class="modal-header">
+                    <h5 class="modal-title">User Profile</h5>
+                </div>
+                <div class="modal-body">
+                        <EditForm EditContext="_editUserUpdate">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+                        
+                            <div class="form-group">
+                                <label for="inpUserNameUpt">Name</label>
+                                <InputText id="inpUserNameUpt" class="form-control" @bind-Value="@_userModelUpdate.Name"></InputText>
+                            </div>
+                            <div class="form-group">
+                                <label for="inpUserNickUpt">NickName</label>
+                                <InputText id="inpUserNickUpt" class="form-control" @bind-Value="@_userModelUpdate.NickName"></InputText>
+                            </div>  
+                            <div class="form-group">
+                                <label for="inpUserBioUpt">Bio</label>
+                                <InputTextArea id="inpUserBioUpt" class="form-control" @bind-Value="@_userModelUpdate.Bio"></InputTextArea>
+                            </div>
+                        
+                            <button type="submit" class="btn btn-primary col-auto">Save changes</button>
+                        </EditForm>
+                    
+                        <button type="button" class="btn btn-secondary col-auto me-3" id="CloseProfileModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        const showButton = document.getElementById("ShowProfileModal")
+        const dialog = document.getElementById("ModalProfileSetting")
+        const closeButton = document.getElementById("CloseProfileModal")
+        showButton.addEventListener("click", () => {
+            dialog.showModal();
+        });
+
+        closeButton.addEventListener("click", () => {
+            dialog.close();
+        });
+
+    </script>
+    <!--EndRegion-->
+
 }
+
 
 @code {
     const int MaxFileSize = 5242880;
     const long MaxFileSizePost = 268435456;
     private EditContext? _editPostContext;
-    private PostModel? _postModel;
+    private PostModel _postModel=new();
+    private EditContext? _editUserUpdate;
+    private UserUpdate _userModelUpdate = new();
     private string? _error;
     private int _currentUploadFiles;
 
+    public class UserUpdate
+    {
+        [Required]
+        [MinLength(5)]
+        public string? Name { get; set; }
+
+        [Required]
+        [MinLength(5)]
+        public string? NickName { get; set; }
+        [MinLength(0)]
+        public string Bio { get; set; } = "";
+    }
     public class PostModel
     {
         [Required]
@@ -121,8 +195,8 @@
     }
     protected override Task OnInitializedAsync()
     {
-        _postModel = new PostModel();
         _editPostContext = new EditContext(_postModel);
+        _editUserUpdate = new EditContext(_userModelUpdate);
         return base.OnInitializedAsync();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -131,12 +205,12 @@
         {
             try
             {
-                if (UserState.CurrentUser != null)
-                    return;
-                
                 UserState.CurrentUser = await CookiesService.RetrievedUser(UserState.CurrentUser);
                 if(UserState.CurrentUser == null)
                     throw new Exception("User not found");
+                _userModelUpdate = new(){
+                    Name = UserState.CurrentUser.Name, NickName = UserState.CurrentUser.NickName, Bio = UserState.CurrentUser.Bio}; 
+                    _editUserUpdate = new EditContext(_userModelUpdate);
                 StateHasChanged();
             }
             catch (Exception ex)
@@ -149,8 +223,17 @@
 
     private async Task DeleteId(MouseEventArgs e, Post post)
     {
-        await PostService.DeletePostAsync(post.PostId);
-        NavigationManager.Refresh(true);
+        try
+        {
+            await PostService.DeletePostAsync(post.PostId);
+            UserState.CurrentUser?.Posts.Remove(post);
+            _error = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            UserState.CurrentUser?.Posts.Remove(post);
+            _error = ex.Message;
+        }
     }
 
 
@@ -178,9 +261,10 @@
             Console.WriteLine(ex);
         }
     }
-    string[] AllowedExtensions = new string[] { "jpg", "mp4", "png" } ;
 
-    private Dictionary<Files, double> fileProgresses = new Dictionary<Files, double>();
+    readonly string[] _allowedExtensions = ["jpg", "mp4", "png", "jpeg"];
+
+    private readonly Dictionary<Files, double> _fileProgresses = new Dictionary<Files, double>();
     private async Task BtnUploadPostFiles(InputFileChangeEventArgs e)
     {
         var browserFiles = e.GetMultipleFiles();
@@ -189,11 +273,8 @@
         {
             try
             {
-                var extension = file.Name.Split('.').Last();
-                if (!AllowedExtensions.Contains(extension))
-                {
+                if (!_allowedExtensions.Contains(file.Name.Split('.').Last()))
                     throw new Exception("Invalid file type");
-                }
 
                 var fileName = Path.GetFileName(file.Name);
                 var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
@@ -214,55 +295,44 @@
                     await fileStream.WriteAsync(buffer, 0, readBytes);
                     uploadedBytes += readBytes;
                     var progress = (uploadedBytes / (double)totalBytes) * 100;
-                    fileProgresses[tempFile] = progress;
+                    _fileProgresses[tempFile] = progress;
                     StateHasChanged();
                 }
-                _currentUploadFiles--;
             }
             catch (Exception ex)
             {
                 _error = ex.Message;
             }
+            _currentUploadFiles--;
         }
 
     }
     private async Task HandlerPost(EditContext editContext)
     {
+        if (UserState.CurrentUser == null || _postModel?.Body == null)
+            return;
+
         if (_currentUploadFiles > 0)
             _error = "Still uploading files, please wait";
-        List<Files> files = new List<Files>();
-        foreach (var file in fileProgresses.Keys)
+        var files = _fileProgresses.Keys.Select(file => new Files() { uri = file.uri, fileType = file.fileType }).ToList();
+
+        var post = new Post
         {
-            files.Add(new Files()
-                {
-                    uri = file.uri,
-                    fileType = file.fileType
-                });
-        }
+            UserId = UserState.CurrentUser.UserId,
+            Body = _postModel.Body,
+            Privacy = _postModel.Privacy,
+            CreatedDate = DateTime.UtcNow,
+            files = files,
+            Comments = new List<Comments>()
+        };
+        await PostService.CreatePostAsync(post);
 
-        if (UserState.CurrentUser != null)
-        {
-            if (_postModel != null)
-            {
-                var post = new DbContext.Models.Post
-                {
-                    UserId = UserState.CurrentUser.UserId,
-                    Body = _postModel.Body,
-                    Privacy = _postModel.Privacy,
-                    CreatedDate = DateTime.UtcNow,
-                    files = files,
-                    Comments = new List<Comments>()
-                };
-                await PostService.CreatePostAsync(post);
+        _postModel.Body = "";
+        _postModel.Privacy = PostPrivacy.p_public;
+        _fileProgresses.Clear();
 
-                _postModel.Body = "";
-                _postModel.Privacy = PostPrivacy.p_public;
-                fileProgresses.Clear();
-
-                UserState.CurrentUser.Posts.Add(post);
-            }
-        }
-
+        UserState.CurrentUser.Posts.Add(post);
         StateHasChanged();
+        }
     }
 }
