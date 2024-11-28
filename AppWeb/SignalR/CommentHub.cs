@@ -1,7 +1,4 @@
-﻿using DbContext.Models;
-using Microsoft.AspNetCore.SignalR;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using Microsoft.AspNetCore.SignalR;
 
 namespace AppWeb.SignalR
 {

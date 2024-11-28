@@ -2,23 +2,22 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using AppWeb.Services
-@using global::Services
 @using Microsoft.AspNetCore.SignalR.Client
-@inject CookiesService cookieService
-@inject PostService postService
+@inject CookiesService CookieService
+@inject PostService PostService
 @inject NavigationManager Navigation
 
-@if (CurrentUser != null)
+@if (CurrentUser != null && _commentModel != null)
 {
     <div class="mt-5 row">
         <img class="col-2 rounded-5" src="/Doctypes/Avatars/@CurrentUser.Avatar" />
-        <EditForm EditContext="editContext" class="col-9" OnValidSubmit="HandlerSend">
+        <EditForm EditContext="EditContext" class="col-9" OnValidSubmit="HandlerSend">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <div class="col-11 d-flex flex-column">
                 <h4>@CurrentUser.Name</h4>
                 <div class="d-flex">
-                    <InputText @bind-Value="@commentModel.CommentText" class="col-md-12"></InputText>
+                        <InputText @bind-Value="@_commentModel.CommentText" class="col-md-12"></InputText>
                     <button type="submit" class="btn btn-outline-success col-2">
                         <i class="bi bi-send"></i>
                     </button>
@@ -34,29 +33,30 @@ else
 
 @code {
     [Parameter]
-    public DbContext.Models.Post post { get; set; }
+    public DbContext.Models.Post Post { get; set; } = new();
     [Parameter]
-    public DbContext.Models.User CurrentUser { get; set; }
+    public DbContext.Models.User? CurrentUser { get; set; }
 
 
-    public EditContext editContext { get; set; }
-    private CommentModel commentModel;
-    private bool _isInitialized = false;
-    private HubConnection hubConnection;
-    private bool disposed = false; 
+    private EditContext? EditContext { get; set; }
+    private CommentModel? _commentModel;
+    private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
-        commentModel = new CommentModel();
-        editContext = new EditContext(commentModel);
+        
+        if(CurrentUser == null)
+            return;
+        _commentModel = new CommentModel();
+        EditContext = new EditContext(_commentModel);
         try
         {
-            hubConnection = new HubConnectionBuilder()
+            _hubConnection = new HubConnectionBuilder()
                 .WithUrl(Navigation.ToAbsoluteUri("/CommentHub"))
                 .ConfigureLogging(logging => logging.AddConsole())
                 .Build();
 
-            await hubConnection.StartAsync();
+            await _hubConnection.StartAsync();
         }
         catch (Exception ex)
         {
@@ -64,37 +64,36 @@ else
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        
-    }
-
     private async Task HandlerSend(EditContext editContext)
     {
         var model = (CommentModel)editContext.Model;
         try
         {
-            Comments comment = new Comments()
+            if (CurrentUser != null)
+            {
+                Comments comment = new Comments()
                 {
                     CommentText = model.CommentText,
-                    PostId = post.PostId,
+                    PostId = Post.PostId,
                     UserId = CurrentUser.UserId
                 };
-            await postService.SetCommentToPost(comment);
+                await PostService.SetCommentToPost(comment);
 
-            if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
-            {
-                comment.User = CurrentUser;
-                comment.Files = new List<Files>();
-
-                var options = new JsonSerializerOptions
+                if (_hubConnection is { State: HubConnectionState.Connected })
                 {
-                    ReferenceHandler = ReferenceHandler.Preserve
-                };
-                var commentJson = JsonSerializer.Serialize(comment, options);
-                await hubConnection.InvokeAsync("SendComment", post.PostId.ToString(), commentJson);
+                    comment.User = CurrentUser;
+                    comment.Files = new List<Files>();
+
+                    var options = new JsonSerializerOptions
+                    {
+                        ReferenceHandler = ReferenceHandler.Preserve
+                    };
+                    var commentJson = JsonSerializer.Serialize(comment, options);
+                    await _hubConnection.InvokeAsync("SendComment", Post.PostId.ToString(), commentJson);
+                }
             }
-            commentModel.CommentText = "";
+
+            if (_commentModel != null) _commentModel.CommentText = "";
             StateHasChanged();
         }
         catch (Exception e)
@@ -105,11 +104,8 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection != null)
-        {
-            await hubConnection.DisposeAsync();
-        }
-        disposed = true; 
+        if (_hubConnection != null)
+            await _hubConnection.DisposeAsync();
     }
 
     public class CommentModel
@@ -117,6 +113,6 @@ else
         [Required]
         [MinLength(1)]
         [MaxLength(500)]
-        public string CommentText { get; set; }
+        public string CommentText { get; set; } = string.Empty;
     }
 }

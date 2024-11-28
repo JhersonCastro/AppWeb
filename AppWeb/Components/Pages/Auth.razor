@@ -1,14 +1,11 @@
 ﻿@page "/auth"
-@using global::Services
-@using Services
-@inject CookiesService cookiesService
-@inject UserService userService
-@inject UserState userState
-@inject NavigationManager navigationManager
-@inject LocalStorageService localStorageService
-@inject IJSRuntime JSRuntime
-@inject IHttpContextAccessor HttpContextAccessor
-
+@using AppWeb.Services
+@using DbContext
+@inject CookiesService CookiesService
+@inject UserService UserService
+@inject UserState UserState
+@inject NavigationManager NavigationManager
+@inject LocalStorageService LocalStorageService
 
 <PageTitle>Auth</PageTitle>
 @if (!string.IsNullOrEmpty(Message))
@@ -16,134 +13,133 @@
     <div>@Message</div>
 }
 
-
 <h3>SocialNetwork</h3>
-<EditForm EditContext="editRegisterContext" OnValidSubmit="HandlerRegisterSubmit" FormName="RegisterContext" class="row g-3 margin" style="@((isLoginActive == false) ? "" : "display:none")">
-    <DataAnnotationsValidator/>
-    <ValidationSummary/>    
-    <div class="row-cols-1">
-        <label for="rgstxtName" class="form-label">Name</label>
-        <InputText type="text" @bind-Value="registerRequest.Name" class="form-control" id="rgstxtName" name="rgstxtName" placeholder="Name" />
-    </div>
-    <div class="row-cols-1">
-        <label for="rgstxtUserName" class="form-label">User Name</label>
-        <InputText type="text" @bind-Value="registerRequest.NickName" class="form-control" id="rgstxtUserName" placeholder="User Name" />
-    </div>
-    <div class="row-cols-1">
-        <label for="rgstxtEmail" class="form-label">Email</label>
-        <InputText type="email" @bind-Value="registerRequest.Email" class="form-control" id="rgstxtEmail" placeholder="Email"   />
-    </div>
-    <div class="row-cols-1">
-        <label for="rgstxtPsw" class="form-label">Password</label>
-        <InputText type="password" @bind-Value="registerRequest.Password" class="form-control" id="rgstxtPsw" placeholder="Password"  />
-    </div>
-    
 
-    <div class="row g-3 justify-content-end">
-        <button type="button" class="col-md-auto btn btn-secondary me-3" @onclick="ChangeForm">Show Register Form</button>
-        <button type="submit" class="col-md-auto btn btn-primary">Submit</button>
-    </div>
-</EditForm>
-<EditForm class="row g-3 margin" EditContext="editLoginContext" OnValidSubmit="HandlerLoginSubmit" style="@((isLoginActive == true) ? "" : "display:none")">
-    <DataAnnotationsValidator/>
-    <ValidationSummary/>
-    <div class="row-cols-1">
-        <label for="lgtxtEmail" class="form-label">Email</label>
-        <InputText type="email" id="lgtxtEmail" @bind-Value="loginRequest.Email" class="form-control" />
-    </div>
-    <div class="row-cols-1">
-        <label for="lgtxtPassword" class="form-label">Password</label>
-        <InputText id="lgtxtPassword" type="password" @bind-Value="loginRequest.Password" class="form-control" />
-    </div>
-    <div class="row g-3 justify-content-end">
-        <button type="button" class="col-md-auto btn btn-secondary me-3" @onclick="ChangeForm">Show Register Form</button>
-        <button type="submit" class="col-md-auto btn btn-primary">Submit</button>
-    </div>
-</EditForm>
+@if (_loginRequest != null && _registerRequest != null)
+{
+    <EditForm EditContext="_editRegisterContext" OnValidSubmit="HandlerRegisterSubmit" FormName="RegisterContext" class="row g-3 margin" style="@((!IsLoginActive? "display:block" : "display:none"))">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row-cols-1">
+            <label for="rgstxtName" class="form-label">Name</label>
+            <InputText type="text" @bind-Value="_registerRequest.Name" class="form-control" id="rgstxtName" name="rgstxtName" placeholder="Name" />
+        </div>
+        <div class="row-cols-1">
+            <label for="rgstxtUserName" class="form-label">User Name</label>
+            <InputText type="text" @bind-Value="_registerRequest.NickName" class="form-control" id="rgstxtUserName" placeholder="User Name" />
+        </div>
+        <div class="row-cols-1">
+            <label for="rgstxtEmail" class="form-label">Email</label>
+            <InputText type="email" @bind-Value="_registerRequest.Email" class="form-control" id="rgstxtEmail" placeholder="Email" />
+        </div>
+        <div class="row-cols-1">
+            <label for="rgstxtPsw" class="form-label">Password</label>
+            <InputText type="password" @bind-Value="_registerRequest.Password" class="form-control" id="rgstxtPsw" placeholder="Password" />
+        </div>
+
+        <div class="row g-3 justify-content-end">
+            <button type="button" class="col-md-auto btn btn-secondary me-3" @onclick="ChangeForm">Show Register Form</button>
+            <button type="submit" class="col-md-auto btn btn-primary">Submit</button>
+        </div>
+    </EditForm>
+
+    <EditForm class="row g-3 margin" EditContext="_editLoginContext" OnValidSubmit="HandlerLoginSubmit" style="@(IsLoginActive? "" : "display:none")">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row-cols-1">
+            <label for="lgtxtEmail" class="form-label">Email</label>
+            <InputText type="email" id="lgtxtEmail" @bind-Value="_loginRequest.Email" class="form-control" />
+        </div>
+        <div class="row-cols-1">
+            <label for="lgtxtPassword" class="form-label">Password</label>
+            <InputText id="lgtxtPassword" type="password" @bind-Value="_loginRequest.Password" class="form-control" />
+        </div>
+        <div class="row g-3 justify-content-end">
+            <button type="button" class="col-md-auto btn btn-secondary me-3" @onclick="ChangeForm">Show Register Form</button>
+            <button type="submit" class="col-md-auto btn btn-primary">Submit</button>
+        </div>
+    </EditForm>
+}
 <style>
-    .margin{
+    .margin {
         margin-top: 10%;
         margin-left: 25%;
         margin-right: 25%;
     }
 </style>
-<script src="/IndexDB.js"></script>
 @code {
-    public static bool isLoginActive = true;
-    EditContext editLoginContext;
-    EditContext editRegisterContext;
-    DbContext.Credentials.LoginRequest loginRequest;
-    DbContext.Credentials.RegisterRequest registerRequest;
-    public string Message;
+    public bool IsLoginActive = true;
+    EditContext? _editLoginContext;
+    EditContext? _editRegisterContext;
+    Credentials.LoginRequest? _loginRequest;
+    Credentials.RegisterRequest? _registerRequest;
+    public string? Message;
+
     protected override void OnInitialized()
     {
-        loginRequest = new DbContext.Credentials.LoginRequest();
-        registerRequest = new DbContext.Credentials.RegisterRequest();
-        editLoginContext = new EditContext(loginRequest);
-        editRegisterContext = new EditContext(registerRequest);
+        _loginRequest = new DbContext.Credentials.LoginRequest();
+        _registerRequest = new DbContext.Credentials.RegisterRequest();
+        _editLoginContext = new EditContext(_loginRequest);
+        _editRegisterContext = new EditContext(_registerRequest);
     }
+
     public async Task HandlerLoginSubmit(EditContext editContext)
     {
         try
         {
             var login = (DbContext.Credentials.LoginRequest)editContext.Model;
             var credentials = new DbContext.Models.Credential
-            {
-                email = login.Email,
-                password = login.Password
-            };
-            var user = await userService.AuthenticateLoginAsync(credentials);
+                {
+                    email = login.Email,
+                    password = login.Password
+                };
+            var user = await UserService.AuthenticateLoginAsync(credentials);
             if (user != null)
             {
-                userState.CurrentUser   = user;
-                var value = await cookiesService.AddCookieCurrentSession(user);
-                await localStorageService.SetItemAsync("CurrentSession", value);
-                navigationManager.NavigateTo("/profile", true);
+                UserState.CurrentUser = user;
+                var value = await CookiesService.AddCookieCurrentSession(user);
+                await LocalStorageService.SetItemAsync("CurrentSession", value);
+                NavigationManager.NavigateTo("/profile", true);
             }
         }
         catch (Exception e)
         {
-
             Message = e.Message;
             StateHasChanged();
         }
-
     }
+
     public async Task HandlerRegisterSubmit(EditContext editContext)
     {
         var register = (DbContext.Credentials.RegisterRequest)editContext.Model;
         try
         {
             DbContext.Models.User user = new DbContext.Models.User
-            {
-                Name = register.Name,
-                NickName = register.NickName,
-            };
+                {
+                    Name = register.Name,
+                    NickName = register.NickName,
+                };
             DbContext.Models.Credential credential = new DbContext.Models.Credential
-            {
-                email = register.Email,
-                password = register.Password
-            };
-            var response = await userService.CreateUserAsync(user, credential);
-            if (response != null)
-            {
-                userState.CurrentUser = response;
+                {
+                    email = register.Email,
+                    password = register.Password
+                };
+            var response = await UserService.CreateUserAsync(user, credential);
+                UserState.CurrentUser = response;
 
-                var value = await cookiesService.AddCookieCurrentSession(response);
-                await localStorageService.SetItemAsync("CurrentSession", value);
+                var value = await CookiesService.AddCookieCurrentSession(response);
+                await LocalStorageService.SetItemAsync("CurrentSession", value);
 
-                navigationManager.NavigateTo("/profile",true);
-            }
-
+                NavigationManager.NavigateTo("/profile", true);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
         }
     }
-    
-    public async Task ChangeForm()
+
+    public void ChangeForm()
     {
-        isLoginActive = !isLoginActive;
+        IsLoginActive = !IsLoginActive;
     }
 }

@@ -1,34 +1,27 @@
-﻿using DbContext.Models;
-using DbContext;
+﻿using DbContext;
+using DbContext.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 
 namespace AppWeb.Services
 {
-    public class UserService
+    public class UserService(IDbContextFactory<DatabaseContext> contextFactory)
     {
-        private readonly IDbContextFactory<DatabaseContext> _contextFactory;
-
-        public UserService(IDbContextFactory<DatabaseContext> contextFactory)
-        {
-            _contextFactory = contextFactory;
-        }
         public async Task<List<User>> GetUsersAsync()
         {
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
             return await context.Users
-                .Where(u => u.Posts.Count > 0) 
+                .Where(u => u.Posts.Count > 0)
                 .Include(u => u.Posts)
                 .ThenInclude(p => p.Comments)
                 .ThenInclude(c => c.User)
-                .Include(u=> u.Posts)
+                .Include(u => u.Posts)
                 .ThenInclude(p => p.files)
                 .ToListAsync();
         }
 
         public async Task<User?> GetUserByIdAsync(int id)
         {
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
             return await context.Users
                 .Include(u => u.Posts)
                 .ThenInclude(p => p.files)
@@ -39,7 +32,7 @@ namespace AppWeb.Services
         {
             credential.password = HashPassword(credential.password);
 
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
 
             CheckIfUserExists(context, user);
             CheckIfCredentialsExist(context, credential);
@@ -72,12 +65,12 @@ namespace AppWeb.Services
         }
         public async Task<User?> getUserById(int id)
         {
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
             return await context.Users.FirstOrDefaultAsync(u => u.UserId == id);
         }
         public async Task<User?> AuthenticateLoginAsync(Credential credential)
         {
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
 
             var userCredential = await context.Credentials
                 .FirstOrDefaultAsync(c => c.email == credential.email);
@@ -101,7 +94,7 @@ namespace AppWeb.Services
 
         public async Task UpdateUserAsync(User userChange)
         {
-            await using var context = _contextFactory.CreateDbContext();
+            await using var context = await contextFactory.CreateDbContextAsync();
 
             var user = await context.Users.FirstOrDefaultAsync(u => u.UserId == userChange.UserId);
             if (user != null)
@@ -115,10 +108,11 @@ namespace AppWeb.Services
             }
         }
 
-        public async Task<List<User>> PredictUserAsync(string nameOrNickname)
+        public async Task<List<User>> PredictUserAsync(string? nameOrNickname)
         {
-            await using var context = _contextFactory.CreateDbContext();
-
+            await using var context = await contextFactory.CreateDbContextAsync();
+            if (nameOrNickname == null)
+                return new List<User>();
             string normalizedPrompt = nameOrNickname.Trim().ToLower();
             return await context.Users
                 .Where(u => u.NickName.Trim().ToLower().StartsWith(normalizedPrompt) ||
