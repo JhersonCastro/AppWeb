@@ -35,7 +35,7 @@ else
     [Parameter]
     public DbContext.Models.Post Post { get; set; } = new();
     [Parameter]
-    public DbContext.Models.User? CurrentUser { get; set; }
+    public User? CurrentUser { get; set; }
 
 
     private EditContext? EditContext { get; set; }

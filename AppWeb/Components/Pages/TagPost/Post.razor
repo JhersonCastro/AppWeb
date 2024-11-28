@@ -47,7 +47,7 @@
             </section>
         </article>
         <div class="p-3 mt-3">
-            <Comment post="CurrentPost" />
+            <Comment post="CurrentPost" CurrentUser="CurrentUser"/>
         </div>
     </div>
 }
@@ -55,5 +55,6 @@
 @code {
     [Parameter]
     public DbContext.Models.Post? CurrentPost { get; set; }
-
+    [Parameter]
+    public required User CurrentUser { get; set; }
 }

@@ -24,7 +24,7 @@
     <div class="row justify-content-center" style="margin-right:0px;">
         @foreach (var post in _userContext.Posts.OrderByDescending(p => p.CreatedDate))
         {
-            <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post"></AppWeb.Components.Pages.TagPost.Post>
+            <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.TagPost.Post>
         }
     </div>
 }

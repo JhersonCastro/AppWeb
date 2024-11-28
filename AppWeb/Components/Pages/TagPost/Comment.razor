@@ -2,7 +2,6 @@
 @using System.Text.Json.Serialization
 @using AppWeb.Services
 @using Microsoft.AspNetCore.SignalR.Client
-@inject UserState UserState
 @inject CookiesService CookieService
 @inject PostService PostService
 @inject NavigationManager NavigationManager
@@ -11,7 +10,7 @@
         @foreach (var comment in post.Comments.OrderBy(c=>c.CommentId))
         {
             
-            @if (comment.UserId == UserState.CurrentUser?.UserId)
+            @if (comment.UserId == CurrentUser?.UserId)
             {
                 <div class="row justify-content-end">
 
@@ -33,13 +32,14 @@
                         </div>
                     </div> 
         }
-    <UserComment Post="post" CurrentUser="UserState.CurrentUser"></UserComment>
+    <UserComment Post="post" CurrentUser="CurrentUser"></UserComment>
 </div>
 
 @code {
     [Parameter]
     public required DbContext.Models.Post post { get; set; }
-
+    [Parameter]
+    public required User CurrentUser { get; set; }
     private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
@@ -79,14 +79,6 @@
     public async Task DeleteId(MouseEventArgs args, int commentId)
     {
         if (_hubConnection != null) await _hubConnection.SendAsync("DeleteComment", post.PostId.ToString(), commentId.ToString());
-    }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            UserState.CurrentUser = await CookieService.RetrievedUser(UserState.CurrentUser);
-            StateHasChanged();
-        }
     }
     private async Task AddComment(Comments? comment)
     {

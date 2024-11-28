@@ -104,7 +104,7 @@
                         </svg>
                     </button>
                 </div>
-                <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post" ></AppWeb.Components.Pages.TagPost.Post>
+                <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.TagPost.Post>
             }
         </div>
     </div>
@@ -208,7 +208,7 @@
                 UserState.CurrentUser = await CookiesService.RetrievedUser(UserState.CurrentUser);
                 if(UserState.CurrentUser == null)
                     throw new Exception("User not found");
-                _userModelUpdate = new(){
+                _userModelUpdate = new UserUpdate {
                     Name = UserState.CurrentUser.Name, NickName = UserState.CurrentUser.NickName, Bio = UserState.CurrentUser.Bio}; 
                     _editUserUpdate = new EditContext(_userModelUpdate);
                 StateHasChanged();
