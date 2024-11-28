@@ -45,6 +45,21 @@ public class PostService
         await context.Comments.AddAsync(comments);
         await context.SaveChangesAsync();
     }
+
+    public async Task DeleteComment(Comments comment)
+    {
+        try
+        {
+            await using var context = _contextFactory.CreateDbContext();
+            var c = await context.Comments.AsNoTracking().FirstAsync(c=> c.CommentId == comment.CommentId);
+            context.Comments.Remove(c);
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
     public async Task<List<Post>> GetPostsAsync(User userRequest, User? user)
     {
         await using var context = _contextFactory.CreateDbContext();
@@ -81,7 +96,6 @@ public class PostService
 
         if (post != null)
         {
-            // Eliminar archivos asociados del sistema de archivos
             foreach (var file in post.files)
             {
                 string filePath = Path.Combine(WebHotEnv.WebRootPath, "Doctypes", file.uri);
@@ -91,7 +105,6 @@ public class PostService
                 }
             }
 
-            // Eliminar archivos asociados de los comentarios del sistema de archivos
             foreach (var comment in post.Comments)
             {
                 foreach (var file in comment.Files)
@@ -104,17 +117,14 @@ public class PostService
                 }
             }
 
-            // Eliminar archivos asociados de la base de datos
             context.Files.RemoveRange(post.files);
 
-            // Eliminar comentarios asociados de la base de datos
             foreach (var comment in post.Comments)
             {
                 context.Files.RemoveRange(comment.Files);
             }
             context.Comments.RemoveRange(post.Comments);
 
-            // Eliminar el post de la base de datos
             context.Posts.Remove(post);
 
             await context.SaveChangesAsync();

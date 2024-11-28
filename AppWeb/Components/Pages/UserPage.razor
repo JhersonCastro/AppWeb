@@ -4,11 +4,11 @@
 @inject PostService postService
 @inject NavigationManager navigationManager
 @inject CookiesService cookiesService
-@inject UserState userState
 @page "/User"
 @if (userContext != null)
 {
     <PageTitle>@userContext.Name</PageTitle>
+
     <div class="justify-content-center row" style="margin-top:2.5%">
         <div class="col-2 justify-content-center ">
             <img src="/Doctypes/Avatars/@userContext.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
@@ -20,6 +20,8 @@
         <h1 class="col-auto" style="color:deepskyblue">@@@userContext.NickName</h1>
     </div>
     <br />
+
+
     <div class="row justify-content-center" style="margin-right:0px;">
         @foreach (var post in userContext.Posts.OrderByDescending(p => p.CreatedDate))
         {
@@ -31,19 +33,22 @@
     [SupplyParameterFromQuery]
     public string id { get; set; }
     private DbContext.Models.User userContext;
+    private DbContext.Models.User userProfile;
     protected override async Task OnInitializedAsync()
     {
         try
         {
             var user = await userService.getUserById(int.Parse(id));
+            userProfile = await cookiesService.RetrievedUser();
             if(user==null)
                 throw new Exception("User doesn't found");
             userContext = new DbContext.Models.User
             {
+                UserId = user.UserId,
                 Name = user.Name,
                 NickName = user.NickName,
                 Avatar = user.Avatar,
-                Posts = await postService.GetPostsAsync(user, null)
+                Posts = await postService.GetPostsAsync(user, userProfile)
             };
         }
         catch (Exception e)

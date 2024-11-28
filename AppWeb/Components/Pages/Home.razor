@@ -1,7 +1,16 @@
 ﻿@page "/"
-
+@using AppWeb.Services
+@inject UserService userService
 <PageTitle>Home</PageTitle>
 
 <p>Pagina en mantenimiento</p>
 <p>Por favor ingresa a <a href="/auth">para registrarte o ingresar</a></p>
 <p>Por favor ingresa a <a href="/profile">para ver tu perfil una vez registrado o ingresado</a></p>
+<p>Por favor ingresa a <a href="/Chats/CommunityChat">para entrar al chat de la comunidad (advertencia, al recargar la pagina se perderan todos los mensajes)</a></p>
+
+
+
+
+
+@code{
+}

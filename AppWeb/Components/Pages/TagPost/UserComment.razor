@@ -1,19 +1,22 @@
 ﻿@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @using AppWeb.Services
 @using global::Services
-@inject UserState userState
+@using Microsoft.AspNetCore.SignalR.Client
 @inject CookiesService cookieService
 @inject PostService postService
+@inject NavigationManager Navigation
 
-@if (userState.CurrentUser != null)
+@if (CurrentUser != null)
 {
     <div class="mt-5 row">
-        <img class="col-2 rounded-5" src="/Doctypes/Avatars/@userState.CurrentUser.Avatar" />
+        <img class="col-2 rounded-5" src="/Doctypes/Avatars/@CurrentUser.Avatar" />
         <EditForm EditContext="editContext" class="col-9" OnValidSubmit="HandlerSend">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <div class="col-11 d-flex flex-column">
-                <h4>@userState.CurrentUser.Name</h4>
+                <h4>@CurrentUser.Name</h4>
                 <div class="d-flex">
                     <InputText @bind-Value="@commentModel.CommentText" class="col-md-12"></InputText>
                     <button type="submit" class="btn btn-outline-success col-2">
@@ -33,34 +36,37 @@ else
     [Parameter]
     public DbContext.Models.Post post { get; set; }
     [Parameter]
-    public EventCallback OnCommentAdded { get; set; }
+    public DbContext.Models.User CurrentUser { get; set; }
+
 
     public EditContext editContext { get; set; }
     private CommentModel commentModel;
     private bool _isInitialized = false;
+    private HubConnection hubConnection;
+    private bool disposed = false; 
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         commentModel = new CommentModel();
         editContext = new EditContext(commentModel);
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/CommentHub"))
+                .ConfigureLogging(logging => logging.AddConsole())
+                .Build();
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_isInitialized)
-        {
-            try
-            {
-                _isInitialized = true;
-                userState.CurrentUser = await cookieService.RetrievedUser();
-                StateHasChanged();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-        }
+        
     }
 
     private async Task HandlerSend(EditContext editContext)
@@ -72,16 +78,38 @@ else
                 {
                     CommentText = model.CommentText,
                     PostId = post.PostId,
-                    UserId = userState.CurrentUser.UserId
+                    UserId = CurrentUser.UserId
                 };
             await postService.SetCommentToPost(comment);
-            await OnCommentAdded.InvokeAsync(null); 
+
+            if (hubConnection != null && hubConnection.State == HubConnectionState.Connected)
+            {
+                comment.User = CurrentUser;
+                comment.Files = new List<Files>();
+
+                var options = new JsonSerializerOptions
+                {
+                    ReferenceHandler = ReferenceHandler.Preserve
+                };
+                var commentJson = JsonSerializer.Serialize(comment, options);
+                await hubConnection.InvokeAsync("SendComment", post.PostId.ToString(), commentJson);
+            }
+            commentModel.CommentText = "";
             StateHasChanged();
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+        disposed = true; 
     }
 
     public class CommentModel

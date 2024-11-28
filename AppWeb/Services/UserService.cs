@@ -13,6 +13,18 @@ namespace AppWeb.Services
         {
             _contextFactory = contextFactory;
         }
+        public async Task<List<User>> GetUsersAsync()
+        {
+            await using var context = _contextFactory.CreateDbContext();
+            return await context.Users
+                .Where(u => u.Posts.Count > 0) 
+                .Include(u => u.Posts)
+                .ThenInclude(p => p.Comments)
+                .ThenInclude(c => c.User)
+                .Include(u=> u.Posts)
+                .ThenInclude(p => p.files)
+                .ToListAsync();
+        }
 
         public async Task<User?> GetUserByIdAsync(int id)
         {

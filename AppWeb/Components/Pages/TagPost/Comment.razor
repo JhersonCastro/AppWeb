@@ -1,36 +1,123 @@
-﻿@using global::Services
+﻿@using System.Text.Json
+@using System.Text.Json.Serialization
+@using global::Services
 @using Services
+@using Microsoft.AspNetCore.SignalR.Client
 @inject UserState userState
 @inject CookiesService cookieService
 @inject PostService postService
+@inject NavigationManager NavigationManager
 
 <div class="row g-3 justify-content-center">
     @if (post != null && post.Comments != null)
     {
-        @foreach (var comment in post.Comments)
+        @foreach (var comment in post.Comments.OrderBy(c=>c.CommentId))
         {
-            <div class="row align-items-start">
-                <div class="col-1">
-                    <img src="/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid">
+            
+            @if (comment.UserId == userState.CurrentUser?.UserId)
+            {
+                <div class="row justify-content-end">
+
+                    <button class="btn btn-danger col-auto" type="submit" @onclick="(args) => DeleteId(args, comment.CommentId)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="col-10 d-flex flex-column">
-                    <a href="/user?id=@comment.User.UserId"><h3>@comment.User.Name</h3></a>
-                    <h4 class="">@comment.CommentText</h4>
-                </div>
-            </div> 
+            }
+                    <div class="row align-items-start">
+                        <div class="col-1">
+                            <img src="/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid">
+                        </div>
+                        <div class="col-10 d-flex flex-column">
+                            <a href="/user?id=@comment.User.UserId"><h3>@comment.User.Name</h3></a>
+                            <h4 class="">@comment.CommentText</h4>
+                        </div>
+                    </div> 
         }
     }
-    <UserComment post="post" OnCommentAdded="RefreshComments"></UserComment>
+    <UserComment post="post" CurrentUser="userState.CurrentUser"></UserComment>
 </div>
 
 @code {
     [Parameter]
     public DbContext.Models.Post post { get; set; }
 
-    private async Task RefreshComments()
+    private HubConnection hubConnection;
+    private bool disposed = false;
+
+    protected override async Task OnInitializedAsync()
     {
-        var refreshedPost = await postService.GetPostByIdAsync(post.PostId);
-        post.Comments = refreshedPost?.Comments;
-        StateHasChanged();
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/CommentHub"))
+                .ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Debug))
+                .Build();
+
+            hubConnection.On<string, string>("ReceiveComment", async (postId, json) =>
+            {
+                if (postId == post.PostId.ToString())
+                {
+                    var options = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
+                    var comment = JsonSerializer.Deserialize<Comments>(json, options);
+                    await AddComment(comment);
+                }
+            });
+            hubConnection.On<string, string>("RecDelComment", async (postId, commentId) =>
+            {
+                if (postId == post.PostId.ToString())
+                {
+                    var comment = post.Comments.FirstOrDefault(c => c.CommentId.ToString() == commentId);
+                    await RemoveComment(comment);
+                }
+            });
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteId(MouseEventArgs args, int commentId)
+    {
+        await hubConnection.SendAsync("DeleteComment", post.PostId.ToString(), commentId.ToString());
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userState.CurrentUser = await cookieService.RetrievedUser();
+            StateHasChanged();
+        }
+    }
+    private async Task AddComment(Comments comment)
+    {
+        if (!disposed)
+        {
+            post.Comments.Add(comment);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task RemoveComment(Comments comment)
+    {
+        if (!disposed)
+        {
+            post.Comments.Remove(comment);
+            await postService.DeleteComment(comment);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+        disposed = true;
     }
 }

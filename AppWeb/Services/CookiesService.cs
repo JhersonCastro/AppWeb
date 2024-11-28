@@ -56,7 +56,7 @@ namespace Services
             var user = await context.Cookies.FirstOrDefaultAsync(p => p.CookieCurrentSession == cookie);
             if (user != null)
             {
-                return await context.Users
+                return await context.Users.AsNoTracking()
                     .Include(u => u.Posts)
                     .ThenInclude(p => p.files)
                     .Include(u => u.Posts)
