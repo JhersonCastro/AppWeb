@@ -8,7 +8,7 @@ namespace AppWeb.Services
         IDbContextFactory<DatabaseContext> contextFactory,
         LocalStorageService localStorageService)
     {
-        public async Task<User?> RetrievedUser(User? user)
+        public async Task<User?> RetrievedUser(User? user) 
         {
             if (user != null)
                 return user;

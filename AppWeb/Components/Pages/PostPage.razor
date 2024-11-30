@@ -1,0 +1,49 @@
+﻿@page "/Post"
+@using Services
+@inject PostService PostService
+@inject CookiesService CookieService
+@inject UserState UserState
+
+
+@if (string.IsNullOrEmpty(Error) && CurrentPost != null)
+{
+    <div class="row justify-content-center">
+        <AppWeb.Components.Pages.Tags.Posts.Post CurrentPost="@CurrentPost" CurrentUser="@UserState.CurrentUser"></AppWeb.Components.Pages.Tags.Posts.Post>
+    </div>
+}
+else{
+    <p class="text-danger">@Error</p>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public string id { get; set; }
+
+    public string? Error { get; set; }
+    public Post? CurrentPost { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var idPost = int.Parse(id);
+                UserState.CurrentUser = await CookieService.RetrievedUser(UserState.CurrentUser);
+                CurrentPost = await PostService.GetPostByIdAsync(idPost);
+
+                if(CurrentPost?.User == null)
+                    Error = "Post not found";
+
+                CurrentPost = await PostService.GetPostByIDAsync(CurrentPost.User, UserState.CurrentUser, idPost);
+
+                if(CurrentPost == null)
+                    Error = "Post not found";
+            }
+            catch (Exception e)
+            {
+                Error = "Post not found";
+            }
+            StateHasChanged();
+        }
+    }
+}

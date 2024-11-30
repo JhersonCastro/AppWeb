@@ -10,12 +10,34 @@ namespace AppWeb.Services
         {
             await using var context = await contextFactory.CreateDbContextAsync();
             var post = await context.Posts
+                .Include(x => x.User)
                 .Include(p => p.files)
                 .Include(p => p.User)
                 .Include(p => p.Comments)
                 .ThenInclude(c => c.User) 
                 .FirstOrDefaultAsync(p => p.PostId == postId);
             return post;
+        }
+        public async Task<List<Post>> GetRandomPosts(int max = 25)
+        {
+            await using var context = await contextFactory.CreateDbContextAsync();
+
+            var totalPosts = await context.Posts.CountAsync();
+
+            var random = new Random();
+            var randomIdx = Enumerable.Range(0, totalPosts)
+                .OrderBy(x => random.Next())
+                .Take(max)
+                .ToList();
+
+            var randomPosts = await context.Posts
+                .Include(p => p.files)
+                .Include(p => p.Comments)
+                .ThenInclude(c => c.User)
+                .Where(p => randomIdx.Contains(p.PostId))
+                .ToListAsync();
+
+            return randomPosts;
         }
 
         public async Task<List<Post>> GetPostsByUserId(int UserId)
@@ -78,7 +100,31 @@ namespace AppWeb.Services
 
             return posts;
         }
+        public async Task<Post?> GetPostByIDAsync(User userRequest, User? user, int postId)
+        {
+            await using var context = await contextFactory.CreateDbContextAsync();
 
+            if (user == null)
+                user = new User()
+                {
+                    UserId = -1
+                };
+
+            var isFriend = await context.Friends
+                .AnyAsync(f => f.UserId == user.UserId && f.UserId == userRequest.UserId);
+
+            var posts = await context.Posts
+                .Where(p => p.UserId == userRequest.UserId &&
+                            (p.Privacy == PostPrivacy.p_public ||
+                             isFriend && p.Privacy == PostPrivacy.p_only_friends))
+                .Include(p => p.User)
+                .Include(p => p.Comments)
+                .ThenInclude(c => c.User)
+                .Include(p => p.files)
+                .FirstOrDefaultAsync(p => p.PostId == postId);
+
+            return posts;
+        }
         public async Task DeletePostAsync(int postId)
         {
             await using var context = await contextFactory.CreateDbContextAsync();
@@ -188,11 +234,13 @@ namespace AppWeb.Services
             }
         }
 
-        public async Task CreatePostAsync(Post post)
+        public async Task<Post> CreatePostAsync(Post post)
         {
             await using var context = await contextFactory.CreateDbContextAsync();
             await context.Posts.AddAsync(post);
             await context.SaveChangesAsync();
+            return post;
         }
+
     }
 }

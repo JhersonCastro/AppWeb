@@ -1,0 +1,31 @@
+﻿<MudDialog>
+    <TitleContent>
+        @Title
+    </TitleContent>
+    <DialogContent>
+        <h3>@Content</h3>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Exit</MudButton>
+        <button onclick="copyToClipboard('@Content')" class="btn btn-success">Copy</button>
+    </DialogActions>
+</MudDialog>
+<script>
+    function copyToClipboard(text) {
+        var input = document.createElement('input');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('Copied to clipboard!');
+    }
+</script>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public string Title { get; set; }
+    [Parameter] public string Content { get; set; }
+
+    void Cancel() => MudDialog.Cancel();
+}

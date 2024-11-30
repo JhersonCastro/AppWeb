@@ -24,10 +24,13 @@
             }
                     <div class="row align-items-start">
                         <div class="col-1">
-                            <img src="/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid" alt="Image">
+                            <img src="@Const.url/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid" alt="Image">
                         </div>
                         <div class="col-10 d-flex flex-column">
-                            <a href="/user?id=@comment.User.UserId"><h3>@comment.User.Name</h3></a>
+                            @{var link = $"{Const.url}/user?id={comment.User.UserId}";}
+                            <MudLink Href="@link">
+                                <h3>@comment.User.Name</h3>
+                            </MudLink>
                             <h4 class="">@comment.CommentText</h4>
                         </div>
                     </div> 
@@ -39,7 +42,7 @@
     [Parameter]
     public required DbContext.Models.Post post { get; set; }
     [Parameter]
-    public required User CurrentUser { get; set; }
+    public required User? CurrentUser { get; set; }
     private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()

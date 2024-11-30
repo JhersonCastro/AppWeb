@@ -10,7 +10,7 @@
 @if (CurrentUser != null && _commentModel != null)
 {
     <div class="mt-5 row">
-        <img class="col-2 rounded-5" src="/Doctypes/Avatars/@CurrentUser.Avatar" alt="User Avatar"/>
+        <img class="col-2 rounded-5" src="@Const.url/Doctypes/Avatars/@CurrentUser.Avatar" alt="User Avatar" />
         <EditForm EditContext="EditContext" class="col-9" OnValidSubmit="HandlerSend">
             <DataAnnotationsValidator />
             <ValidationSummary />

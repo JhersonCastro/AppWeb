@@ -1,0 +1,82 @@
+﻿@using AppWeb.Components.Pages.Tags.Dialogs
+@inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
+
+<div class="col-auto col-md-10 mb-5">
+    <article class="card text-white bg-dark rounded-5">
+        <header class="card-header row">
+            <div class="row justify-content-between align-items-center">
+                <div class="col-auto">
+                    <MudAvatar Size="Size.Large">
+                        @{string a = $"{Const.url}/Doctypes/Avatars/{CurrentPost.User.Avatar}";}
+                        <MudImage Src="@a" Alt="Avatar"></MudImage>
+                    </MudAvatar>
+                </div>
+                <div class="col">
+                    @{
+                        string link = $"{Const.url}/user?id={CurrentPost.User.UserId}";
+                    }
+                    <MudLink Href="@link">
+                        <h1 class="mb-0">@CurrentPost.User.Name</h1>
+                    </MudLink>
+                </div>
+                <div class="col-auto">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenDialogAsync">Share Post</MudButton>
+                </div>
+            </div>
+
+            <p class="col-10 text-left">@CurrentPost.Body</p>
+            <div class="col-auto p-3 text-center">
+                <time datetime="@CurrentPost.CreatedDate" data-toggle="tooltip" title="@CurrentPost.CreatedDate">
+                    @CurrentPost.CreatedDate.ToShortDateString()
+                </time>
+                @{
+                    var pri = CurrentPost.Privacy switch
+                    {
+                        PostPrivacy.p_public => "bi bi-globe",
+                        PostPrivacy.p_private => "bi bi-lock-fill",
+                        PostPrivacy.p_only_friends => "bi bi-people",
+                        _ => ""
+                    };
+                }
+                <i class="@pri"></i>
+            </div>
+        </header>
+        
+        <section class="row g-3 p-3 justify-content-center">
+            @foreach (var media in CurrentPost.files)
+            {
+                <div class="col-6 mb-2">
+                    @if (media.fileType.Split('/')[0] == "video")
+                    {
+                        <video class='same-size rounded-5' controls>
+                            <source src='@Const.url/Doctypes/@media.uri' type="@media.fileType">
+                        </video>
+                    }
+                    else
+                    {
+                        <img loading='lazy' class='same-size rounded-5' src='@Const.url/Doctypes/@media.uri' alt='Image' />
+                    }
+                </div>
+            }
+        </section>
+    </article>
+    <div class="p-3 mt-3">
+        <Comment post="CurrentPost" CurrentUser="CurrentUser"/>
+    </div>
+</div>
+
+
+@code {
+    [Parameter]
+    public required DbContext.Models.Post CurrentPost { get; set; }
+    [Parameter]
+    public required User CurrentUser { get; set; }
+
+    public void OpenDialogAsync()
+    {
+        DialogService.Show<ShareDialog>("Share Post", 
+        new DialogParameters { { "Title", "Share post" },
+        {"Content", $"{Const.url}/post?id={CurrentPost.PostId}"} });
+    }
+}

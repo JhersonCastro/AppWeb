@@ -11,7 +11,7 @@
 
     <div class="justify-content-center row" style="margin-top:2.5%">
         <div class="col-2 justify-content-center ">
-            <img src="/Doctypes/Avatars/@_userContext.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
+            <img src="@Const.url/Doctypes/Avatars/@_userContext.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
         </div>
     </div>
 
@@ -24,7 +24,7 @@
     <div class="row justify-content-center" style="margin-right:0px;">
         @foreach (var post in _userContext.Posts.OrderByDescending(p => p.CreatedDate))
         {
-            <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.TagPost.Post>
+            <AppWeb.Components.Pages.Tags.Posts.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.Tags.Posts.Post>
         }
     </div>
 }
@@ -38,10 +38,11 @@
         {
             try
             {
-                var user = await UserService.getUserById(int.Parse(Id));
+                var user = await UserService.GetUserById(int.Parse(Id));
+                if(user ==null)
+                    throw new Exception("User not found");
                 UserState.CurrentUser = await cookiesService.RetrievedUser(UserState.CurrentUser);
-                if (user == null)
-                    throw new Exception("User doesn't found");
+                
                 _userContext = new User
                     {
                         UserId = user.UserId,
@@ -54,7 +55,8 @@
             }
             catch
             {
-                NavigationManager.NavigateTo("/");
+                Console.WriteLine("Error");
+                NavigationManager.NavigateTo("/");  
             }
         }
     }

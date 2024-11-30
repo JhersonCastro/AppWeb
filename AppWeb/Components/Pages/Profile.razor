@@ -34,13 +34,14 @@
     </button>
     <div class="justify-content-center row" style="margin-top:2.5%">
     <div class="col-2 justify-content-center ">
-        <div> 
-            <label for="fileInput" class="btn btn-primary position-absolute">
+            <div> 
+            <label for="fileInput" style="height:16px" class="btn btn-primary position-absolute">
                     <i class="bi bi-upload"></i>
             </label> 
             <InputFile id="fileInput" OnChange="BtnAvatarHandlerAsync" accept=".png,.jpg,.jpeg" class="inputfile" style="display:none"/> 
             </div>
-        <img src="/Doctypes/Avatars/@UserState.CurrentUser.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
+                @{string url = $"{Const.url}/Doctypes/Avatars/{UserState.CurrentUser.Avatar}";}
+            <MudImage Src="@url" Alt="Avatar" Elevation="25" Height="500" Fluid="true" Class="rounded-4"></MudImage>
 
     </div>
     </div>
@@ -104,7 +105,7 @@
                         </svg>
                     </button>
                 </div>
-                <AppWeb.Components.Pages.TagPost.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.TagPost.Post>
+                <AppWeb.Components.Pages.Tags.Posts.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.Tags.Posts.Post>
             }
         </div>
     </div>
@@ -206,7 +207,7 @@
             try
             {
                 UserState.CurrentUser = await CookiesService.RetrievedUser(UserState.CurrentUser);
-                if(UserState.CurrentUser == null)
+                if (UserState.CurrentUser == null)
                     throw new Exception("User not found");
                 _userModelUpdate = new UserUpdate {
                     Name = UserState.CurrentUser.Name, NickName = UserState.CurrentUser.NickName, Bio = UserState.CurrentUser.Bio}; 
@@ -325,14 +326,13 @@
             files = files,
             Comments = new List<Comments>()
         };
-        await PostService.CreatePostAsync(post);
+        var t = await PostService.CreatePostAsync(post);
 
         _postModel.Body = "";
         _postModel.Privacy = PostPrivacy.p_public;
         _fileProgresses.Clear();
-
-        UserState.CurrentUser.Posts.Add(post);
+        t.User = UserState.CurrentUser;
+        UserState.CurrentUser.Posts.Add(t);
         StateHasChanged();
-        }
     }
 }

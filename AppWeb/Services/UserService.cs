@@ -63,7 +63,7 @@ namespace AppWeb.Services
         {
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
-        public async Task<User?> getUserById(int id)
+        public async Task<User?> GetUserById(int id)
         {
             await using var context = await contextFactory.CreateDbContextAsync();
             return await context.Users.FirstOrDefaultAsync(u => u.UserId == id);
