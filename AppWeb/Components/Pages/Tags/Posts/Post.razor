@@ -1,45 +1,44 @@
 ﻿@using AppWeb.Components.Pages.Tags.Dialogs
+@using AppWeb.Services
 @inject IJSRuntime JSRuntime
 @inject IDialogService DialogService
+@inject CookiesService CookiesService
+
+
 
 <div class="col-auto col-md-10 mb-5">
     <article class="card text-white bg-dark rounded-5">
         <header class="card-header row">
             <div class="row justify-content-between align-items-center">
                 <div class="col-auto">
-                    <MudAvatar Size="Size.Large">
-                        @{string a = $"{Const.url}/Doctypes/Avatars/{CurrentPost.User.Avatar}";}
-                        <MudImage Src="@a" Alt="Avatar"></MudImage>
-                    </MudAvatar>
+                        <MudImage Src="@($"{Const.url}/Doctypes/Avatars/{CurrentPost.User.Avatar}")" Alt="Avatar" 
+                        Style="border-radius:50%; max-height:150px"></MudImage>
                 </div>
                 <div class="col">
-                    @{
-                        string link = $"{Const.url}/user?id={CurrentPost.User.UserId}";
-                    }
-                    <MudLink Href="@link">
-                        <h1 class="mb-0">@CurrentPost.User.Name</h1>
+                    <MudLink Href="@($"{Const.url}/user?id={CurrentPost.User.UserId}")">
+                        <MudText Typo="Typo.h3">@CurrentPost.User.Name</MudText>
                     </MudLink>
                 </div>
                 <div class="col-auto">
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenDialogAsync">Share Post</MudButton>
                 </div>
             </div>
+            <MudText Class="col-10" Typo="Typo.h4">@CurrentPost.Body</MudText>
 
-            <p class="col-10 text-left">@CurrentPost.Body</p>
             <div class="col-auto p-3 text-center">
                 <time datetime="@CurrentPost.CreatedDate" data-toggle="tooltip" title="@CurrentPost.CreatedDate">
                     @CurrentPost.CreatedDate.ToShortDateString()
                 </time>
                 @{
-                    var pri = CurrentPost.Privacy switch
+                    var icon = CurrentPost.Privacy switch
                     {
-                        PostPrivacy.p_public => "bi bi-globe",
-                        PostPrivacy.p_private => "bi bi-lock-fill",
-                        PostPrivacy.p_only_friends => "bi bi-people",
+                        PostPrivacy.p_public => @Icons.Material.Outlined.Public,
+                        PostPrivacy.p_private => @Icons.Material.Filled.Lock,
+                        PostPrivacy.p_only_friends => @Icons.Material.Filled.PeopleAlt,
                         _ => ""
                     };
                 }
-                <i class="@pri"></i>
+                <MudIcon Icon="@icon"></MudIcon>
             </div>
         </header>
         

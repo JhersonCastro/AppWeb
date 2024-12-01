@@ -3,28 +3,36 @@
 @using System.Text.Json.Serialization
 @using AppWeb.Services
 @using Microsoft.AspNetCore.SignalR.Client
-@inject CookiesService CookieService
 @inject PostService PostService
 @inject NavigationManager Navigation
 
 @if (CurrentUser != null && _commentModel != null)
 {
     <div class="mt-5 row">
-        <img class="col-2 rounded-5" src="@Const.url/Doctypes/Avatars/@CurrentUser.Avatar" alt="User Avatar" />
-        <EditForm EditContext="EditContext" class="col-9" OnValidSubmit="HandlerSend">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
-            <div class="col-11 d-flex flex-column">
-                <h4>@CurrentUser.Name</h4>
-                <div class="d-flex">
-                        <InputText @bind-Value="@_commentModel.CommentText" class="col-md-12"></InputText>
-                    <button type="submit" class="btn btn-outline-success col-2">
-                        <i class="bi bi-send"></i>
-                    </button>
-                </div>
-            </div>
-        </EditForm>
+        <MudItem xs="12" sm="2" lg="2" class="d-flex justify-content-center align-items-center">
+            <MudPaper Class="d-flex justify-content-center align-items-center" Style="height: 100%;">
+                <MudImage Src="@($"{Const.url}/Doctypes/Avatars/{CurrentUser.Avatar}")" Alt="Avatar" Style="max-height: 150px; border-radius: 50%;" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="10" lg="10" class="d-flex flex-column">
+            <EditForm EditContext="EditContext" OnValidSubmit="HandlerSend">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h4">@CurrentUser.Name</MudText>
+                        <MudTextField autocomplete="false" T="string" @bind-Value="@_commentModel.CommentText" FullWidth="true" Label="Enter your comment here..." Style="margin-top: 1rem;" />
+                    </MudCardContent>
+                    <MudCardActions class="d-flex justify-content-end">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined" Color="Color.Success" Class="ml-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Send" />
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </EditForm>
+        </MudItem>
     </div>
+
 }
 else
 {
@@ -44,7 +52,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        
+
         if(CurrentUser == null)
             return;
         _commentModel = new CommentModel();
@@ -63,7 +71,6 @@ else
             Console.WriteLine($"Error initializing SignalR: {ex.Message}");
         }
     }
-
     private async Task HandlerSend(EditContext editContext)
     {
         var model = (CommentModel)editContext.Model;
@@ -93,7 +100,7 @@ else
                 }
             }
 
-            if (_commentModel != null) _commentModel.CommentText = "";
+            if (_commentModel != null) _commentModel.CommentText = string.Empty;
             StateHasChanged();
         }
         catch (Exception e)
@@ -112,7 +119,7 @@ else
     {
         [Required]
         [MinLength(1)]
-        [MaxLength(500)]
+        [MaxLength(256)]
         public string CommentText { get; set; } = string.Empty;
     }
 }

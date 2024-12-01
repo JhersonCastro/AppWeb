@@ -27,8 +27,7 @@
                             <img src="@Const.url/Doctypes/Avatars/@comment.User.Avatar" class="img-fluid" alt="Image">
                         </div>
                         <div class="col-10 d-flex flex-column">
-                            @{var link = $"{Const.url}/user?id={comment.User.UserId}";}
-                            <MudLink Href="@link">
+                            <MudLink Href="@($"{Const.url}/user?id={comment.User.UserId}")">
                                 <h3>@comment.User.Name</h3>
                             </MudLink>
                             <h4 class="">@comment.CommentText</h4>

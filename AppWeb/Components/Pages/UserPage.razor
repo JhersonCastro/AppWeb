@@ -5,44 +5,55 @@
 @inject PostService PostService
 @inject NavigationManager NavigationManager
 @inject CookiesService cookiesService
+
 @if (_userContext != null)
 {
     <PageTitle>@_userContext.Name</PageTitle>
 
-    <div class="justify-content-center row" style="margin-top:2.5%">
-        <div class="col-2 justify-content-center ">
-            <img src="@Const.url/Doctypes/Avatars/@_userContext.Avatar" alt="Avatar" class="rounded-5 img-thumbnail" />
-        </div>
-    </div>
+    <MudGrid Justify="Justify.Center" Spacing="5">
+        <MudItem xs="12" sm="9" md="8" lg="5">
+            <MudCard Elevation="25">
+                <MudCardHeader Class="justify-content-center position-relative">
+                    <MudImage ObjectPosition="ObjectPosition.Center" Src="@($"{Const.url}/Doctypes/Avatars/{_userContext.Avatar}")" Style="max-height:200px;"></MudImage>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.h1">@_userContext.Name</MudText>
+                    <MudText Typo="Typo.h2" Style="@($"color:{Colors.Blue.Default}")">@@@_userContext.NickName</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-    <div class="justify-content-center row g-4">
-        <h1 class="col-auto">@_userContext.Name</h1>
-        <h1 class="col-auto" style="color:deepskyblue">@@@_userContext.NickName</h1>
-    </div>
-
-
-    <div class="row justify-content-center" style="margin-right:0px;">
+    <div class="row justify-content-center" style="margin-right:0px; margin-top:5%">
         @foreach (var post in _userContext.Posts.OrderByDescending(p => p.CreatedDate))
         {
             <AppWeb.Components.Pages.Tags.Posts.Post CurrentPost="@post" CurrentUser="UserState.CurrentUser"></AppWeb.Components.Pages.Tags.Posts.Post>
         }
     </div>
 }
+else
+{
+    <p>Loading...</p>
+}
+
 @code {
     [SupplyParameterFromQuery]
     public string Id { get; set; } = string.Empty;
+
     private User? _userContext;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             try
             {
-                var user = await UserService.GetUserById(int.Parse(Id));
-                if(user ==null)
-                    throw new Exception("User not found");
                 UserState.CurrentUser = await cookiesService.RetrievedUser(UserState.CurrentUser);
-                
+                var user = await UserService.GetUserById(int.Parse(Id));
+
+                if (user == null)
+                    throw new Exception("User not found");
+
                 _userContext = new User
                     {
                         UserId = user.UserId,
@@ -51,13 +62,15 @@
                         Avatar = user.Avatar,
                         Posts = await PostService.GetPostsAsync(user, UserState.CurrentUser)
                     };
-                await InvokeAsync(StateHasChanged);
+                
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("Error");
-                NavigationManager.NavigateTo("/");  
+                Console.WriteLine($"Error: {ex.Message}");
+                NavigationManager.NavigateTo("/");
             }
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 }

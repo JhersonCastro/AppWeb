@@ -96,6 +96,7 @@ namespace AppWeb.Services
                 .Include(p => p.Comments)
                 .ThenInclude(c => c.User)
                 .Include(p => p.files)
+                .Include(p=>p.User)
                 .ToListAsync();
 
             return posts;

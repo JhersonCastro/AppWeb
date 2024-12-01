@@ -1,27 +1,27 @@
-﻿@page "/"
-@using AppWeb.Services
-@inject UserState UserState
-@inject CookiesService CookiesService
-@inject PostService PostService
+﻿@page "/"  
+@using AppWeb.Services  
+@inject UserState UserState  
+@inject CookiesService CookiesService  
+@inject PostService PostService  
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Home</PageTitle>  
 
-<p>Page under maintenance</p>
-<p>Please go to 
-    <a href="/auth"> this page to register or login</a>
-</p>
+<p>Page under maintenance</p>  
+<p>Please go to   
+   <MudLink Href="/auth"> this page to register or login</MudLink>  
+</p>  
 
-<p>Please go to 
-    <a href="/profile">para ver tu perfil una vez registrado o ingresado</a>
-</p>
+<p>Please go to   
+   <MudLink Href="/profile"> this page to see your profile once registered or logged in</MudLink>  
+</p>  
 
-<p>Please go to 
-    <a href="/Chats/CommunityChat">para entrar al chat de la comunidad (advertencia, al recargar la pagina se perderan todos los mensajes)</a>
-</p>
-
-
-
+<p>Please go to
+    <MudLink Href="/Chats/CommunityChat"> this page to enter the community chat (warning, reloading the page will lose all messages)</MudLink>
+</p>  
 
 @code{
-    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        UserState.CurrentUser = await CookiesService.RetrievedUser(UserState.CurrentUser);
+    }
 }
