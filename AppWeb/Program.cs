@@ -13,14 +13,20 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddSignalR();
 
-builder.Services.AddResponseCompression(opts =>
+if (!builder.Environment.IsDevelopment())
 {
-    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-        ["application/octet-stream"]);
-});
+    builder.Services.AddResponseCompression(opts =>
+    {
+        opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+            new[] { "application/octet-stream" });
+    });
+}
 
 builder.Services.AddDbContextFactory<DatabaseContext>(
-    options => options.UseSqlServer(builder.Configuration.GetConnectionString("FreeConnection"))
+    options => options.UseSqlServer(builder.Configuration.GetConnectionString("FreeConnection"), sqlOptions =>
+    {
+        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    })
 );
 builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<CookiesService>();
@@ -36,11 +42,11 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseResponseCompression();
 }
-app.UseResponseCompression();
+
 app.UseStaticFiles();
 app.UseRouting();
-
 
 app.UseAntiforgery();
 

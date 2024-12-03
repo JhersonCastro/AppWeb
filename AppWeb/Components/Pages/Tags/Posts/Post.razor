@@ -5,47 +5,42 @@
 @inject CookiesService CookiesService
 
 
-
-<div class="col-auto col-md-10 mb-5">
-    <article class="card text-white bg-dark rounded-5">
-        <header class="card-header row">
-            <div class="row justify-content-between align-items-center">
-                <div class="col-auto">
-                        <MudImage Src="@($"{Const.url}/Doctypes/Avatars/{CurrentPost.User.Avatar}")" Alt="Avatar" 
-                        Style="border-radius:50%; max-height:150px"></MudImage>
-                </div>
-                <div class="col">
-                    <MudLink Href="@($"{Const.url}/user?id={CurrentPost.User.UserId}")">
-                        <MudText Typo="Typo.h3">@CurrentPost.User.Name</MudText>
-                    </MudLink>
-                </div>
-                <div class="col-auto">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenDialogAsync">Share Post</MudButton>
-                </div>
-            </div>
-            <MudText Class="col-10" Typo="Typo.h4">@CurrentPost.Body</MudText>
-
-            <div class="col-auto p-3 text-center">
-                <time datetime="@CurrentPost.CreatedDate" data-toggle="tooltip" title="@CurrentPost.CreatedDate">
-                    @CurrentPost.CreatedDate.ToShortDateString()
-                </time>
-                @{
-                    var icon = CurrentPost.Privacy switch
-                    {
-                        PostPrivacy.p_public => @Icons.Material.Outlined.Public,
-                        PostPrivacy.p_private => @Icons.Material.Filled.Lock,
-                        PostPrivacy.p_only_friends => @Icons.Material.Filled.PeopleAlt,
-                        _ => ""
-                    };
-                }
-                <MudIcon Icon="@icon"></MudIcon>
-            </div>
-        </header>
-        
+<MudCard Class="col-sm-12 col-md-10 col-lg-10 mb-5" >
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Size="Size.Large">
+                <MudImage Src="@($"{Const.url}/Doctypes/Avatars/{CurrentPost.User.Avatar}")" Alt="Avatar" 
+                          Style="border-radius:50%; max-height:150px"></MudImage>
+            </MudAvatar>
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudLink Href="@($"{Const.url}/User/{CurrentPost.User.UserId}")">
+                <MudText Typo="Typo.h2">@CurrentPost.User.Name</MudText>
+                <MudText Typo="Typo.h3">@CurrentPost.User.NickName</MudText>
+            </MudLink>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudText Typo="Typo.h4">@CurrentPost.CreatedDate.ToShortDateString()</MudText>
+            @{
+                var icon = CurrentPost.Privacy switch
+                {
+                    PostPrivacy.p_public => @Icons.Material.Outlined.Public,
+                    PostPrivacy.p_private => @Icons.Material.Filled.Lock,
+                    PostPrivacy.p_only_friends => @Icons.Material.Filled.PeopleAlt,
+                    _ => ""
+                };
+            }
+            
+            <MudIcon Icon="@icon"></MudIcon>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenDialogAsync">Share Post</MudButton>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudText Typo="Typo.h4">@CurrentPost.Body</MudText>
         <section class="row g-3 p-3 justify-content-center">
             @foreach (var media in CurrentPost.files)
             {
-                <div class="col-6 mb-2">
+                <div class="col-sm-12 @(CurrentPost.files.Count == 1 ? "col-md-10 col-lg-8": "col-md-6 col-lg-4") mb-2">
                     @if (media.fileType.Split('/')[0] == "video")
                     {
                         <video class='same-size rounded-5' controls>
@@ -59,11 +54,14 @@
                 </div>
             }
         </section>
-    </article>
-    <div class="p-3 mt-3">
-        <Comment post="CurrentPost" CurrentUser="CurrentUser"/>
-    </div>
-</div>
+
+    </MudCardContent>
+    <MudCardContent>
+        <Comment post="CurrentPost" CurrentUser="CurrentUser" />
+    </MudCardContent>
+</MudCard>
+
+
 
 
 @code {

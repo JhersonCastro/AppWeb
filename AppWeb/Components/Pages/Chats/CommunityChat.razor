@@ -33,8 +33,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _msgModel = new MsgModel();  // Asegurarse de que _msgModel esté inicializado
-        _editContext = new EditContext(_msgModel);  // Asegurarse de que _editContext esté inicializado
+        _msgModel = new MsgModel();  
+        _editContext = new EditContext(_msgModel);  
         _hubConnection = new HubConnectionBuilder()
                         .WithUrl(NavigationManager.ToAbsoluteUri("/ChatHub"))
                         .Build();

@@ -8,25 +8,24 @@
         <a href="/">Go home</a>
     }
 </div>
-<div>
+<div class="row justify-content-center g-3 m-3">
     @foreach (var user in _users)
     {
-        <a href="/user?id=@user.UserId" class="user-profile p-3">
-            <div class="container card">
-                <section class="card-body row">
-                    <img class="rounded-5 col-2" style="aspect-ratio:1/1; object-fit:cover" src="/Doctypes/Avatars/@user.Avatar" alt="Avatar"/>
-                    <h1 class="col">@user.Name</h1>
-                    <h2 class="col">@user.NickName</h2>
-                </section>
-            </div>
-        </a>
+        <MudLink Href="@($"{Const.url}/User/{user.UserId}")" Class="col-12 col-md-6 col-lg-4 mb-4">
+            <MudCard Elevation="4" Class="h-100 " Style="box-shadow: 4px 4px 2px 4px black;">
+                <MudCardHeader>
+                        <img src="@($"{Const.url}/Doctypes/Avatars/{user.Avatar}")" alt="Avatar" 
+                        style="max-height:100px; border-radius:50%; aspect-ratio:1; object-fit:cover"/>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.h5">@user.Name</MudText>
+                    <MudText Typo="Typo.subtitle2">@user.NickName</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudLink>
     }
 </div>
-<style>
-    .user-profile{
-        color:black;
-    }
-</style>
+
 @code {
     [SupplyParameterFromQuery]
     public string? Username { get; set; }

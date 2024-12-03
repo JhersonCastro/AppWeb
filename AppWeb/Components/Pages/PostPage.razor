@@ -21,29 +21,27 @@ else{
 
     public string? Error { get; set; }
     public Post? CurrentPost { get; set; }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnParametersSetAsync()
     {
-        if (firstRender)
+        try
         {
-            try
-            {
-                var idPost = int.Parse(id);
-                UserState.CurrentUser = await CookieService.RetrievedUser(UserState.CurrentUser);
-                CurrentPost = await PostService.GetPostByIdAsync(idPost);
+            var idPost = int.Parse(id);
+            UserState.CurrentUser = await CookieService.RetrievedUser(UserState.CurrentUser);
+            CurrentPost = await PostService.GetPostByIdAsync(idPost);
 
-                if(CurrentPost?.User == null)
-                    Error = "Post not found";
-
-                CurrentPost = await PostService.GetPostByIDAsync(CurrentPost.User, UserState.CurrentUser, idPost);
-
-                if(CurrentPost == null)
-                    Error = "Post not found";
-            }
-            catch (Exception e)
-            {
+            if(CurrentPost?.User == null)
                 Error = "Post not found";
-            }
-            StateHasChanged();
+
+            CurrentPost = await PostService.GetPostByIDAsync(CurrentPost.User, UserState.CurrentUser, idPost);
+
+            if(CurrentPost == null)
+                Error = "Post not found";
         }
+        catch 
+        {
+            Error = "Post not found";
+        }
+        StateHasChanged();
     }
+
 }

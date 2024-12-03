@@ -65,6 +65,7 @@ else
                 .Build();
 
             await _hubConnection.StartAsync();
+
         }
         catch (Exception ex)
         {
@@ -96,7 +97,7 @@ else
                         ReferenceHandler = ReferenceHandler.Preserve
                     };
                     var commentJson = JsonSerializer.Serialize(comment, options);
-                    await _hubConnection.InvokeAsync("SendComment", Post.PostId.ToString(), commentJson);
+                    await _hubConnection.SendAsync("SendComment", Post.PostId.ToString(), commentJson);
                 }
             }
 
